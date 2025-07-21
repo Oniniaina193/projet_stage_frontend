@@ -100,41 +100,49 @@ const PharmacyDashboard = () => {
 
   // Fonction pour charger les médecins
   const loadMedecins = useCallback(async () => {
-    try {
-      console.log('🔄 Chargement des médecins...');
+  try {
+    console.log('🔄 Chargement des médecins...');
+    
+    if (typeof ApiService.getMedecins === 'function') {
+      const response = await ApiService.getMedecins();
+      console.log('📦 Réponse API médecins:', response);
       
-      // Vérifiez si vous avez une méthode getMedecins dans ApiService
-      if (typeof ApiService.getMedecins === 'function') {
-        const response = await ApiService.getMedecins();
-        console.log('📦 Réponse API médecins:', response);
-        
-        let medecinsData = [];
-        
-        if (Array.isArray(response)) {
-          medecinsData = response;
-        } else if (response && response.data && Array.isArray(response.data)) {
-          medecinsData = response.data;
-        } else if (response && response.medecins && Array.isArray(response.medecins)) {
-          medecinsData = response.medecins;
-        } else if (response && response.success && response.data) {
-          medecinsData = Array.isArray(response.data) ? response.data : [];
-        }
-        
-        console.log('✅ Médecins extraits:', medecinsData);
-        setMedecins(medecinsData);
-        return medecinsData;
+      let medecinsData = [];
+      
+      // Gestion de la structure paginée Laravel
+      if (response && response.success && response.data && response.data.data) {
+        // Format paginé: response.data.data contient le tableau
+        medecinsData = Array.isArray(response.data.data) ? response.data.data : [];
+        console.log('✅ Données paginées extraites:', medecinsData);
+      } else if (Array.isArray(response)) {
+        medecinsData = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        medecinsData = response.data;
+      } else if (response && response.medecins && Array.isArray(response.medecins)) {
+        medecinsData = response.medecins;
+      } else if (response && response.success && response.data) {
+        medecinsData = Array.isArray(response.data) ? response.data : [];
       } else {
-        console.log('⚠️ Méthode getMedecins non disponible');
-        setMedecins([]);
-        return [];
+        console.log('❌ Format de réponse non reconnu:', response);
+        medecinsData = [];
       }
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement des médecins:', error);
+      
+      console.log('✅ Médecins extraits:', medecinsData);
+      console.log('📊 Nombre de médecins:', medecinsData.length);
+      
+      setMedecins(medecinsData);
+      return medecinsData;
+    } else {
+      console.log('⚠️ Méthode getMedecins non disponible');
       setMedecins([]);
       return [];
     }
-  }, []);
-
+  } catch (error) {
+    console.error('❌ Erreur lors du chargement des médecins:', error);
+    setMedecins([]);
+    return [];
+  }
+}, []);
   // Fonction pour charger toutes les données
   const loadAllData = useCallback(async () => {
     setLoading(true);

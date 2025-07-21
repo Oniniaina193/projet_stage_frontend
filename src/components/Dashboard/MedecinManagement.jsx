@@ -112,6 +112,10 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
         console.log('Réponse création:', response);
         showMessage('Médecin ajouté avec succès!');
         toast.success('Médecin ajouté avec succès!');
+
+        if (onDataChange) {
+          await onDataChange(); // Ceci va recharger les médecins depuis l'API
+        }
         
         // Ajouter le nouveau médecin à la liste locale
         if (response && response.data) {
