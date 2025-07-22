@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Pill, LogOut, User, FileText, Users, Clock, UserCircle, RefreshCw } from 'lucide-react';
+import { Pill, LogOut, User, FileText, Users, Clock, UserCircle } from 'lucide-react';
 import ApiService from '../../Services/ApiService';
+import { useNavigate } from 'react-router-dom';
 
 // Import des composants modulaires
 import DashboardStats from './DashboardStats';
@@ -10,6 +11,9 @@ import OrdonnanceManagement from './OrdonnanceManagement';
 import HistoriqueClient from './HistoriqueClient';
 
 const PharmacyDashboard = () => {
+
+  const navigate = useNavigate();
+  
   const [currentView, setCurrentView] = useState('dashboard');
   const [medicaments, setMedicaments] = useState([]);
   const [ordonnances, setOrdonnances] = useState([]);
@@ -143,6 +147,7 @@ const PharmacyDashboard = () => {
     return [];
   }
 }, []);
+
   // Fonction pour charger toutes les données
   const loadAllData = useCallback(async () => {
     setLoading(true);
@@ -179,14 +184,14 @@ const PharmacyDashboard = () => {
     setError('');
   };
 
-  // Fonction pour rafraîchir les données
+  // Fonction pour rafraîchir les données (utilisée uniquement par les composants enfants si nécessaire)
   const refreshData = useCallback(() => {
     console.log('🔄 Rafraîchissement des données demandé...');
     clearError(); // Effacer l'erreur avant de recharger
     loadAllData();
   }, [loadAllData]);
 
-  // Charger les données au montage et quand la vue change
+  // Charger les données au montage
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
@@ -211,18 +216,51 @@ const PharmacyDashboard = () => {
     }
   }, [currentView, loadMedicaments, loadMedecins, loadOrdonnances]);
 
-  const handleLogout = () => {
-    if (window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-      // Nettoyer les données
+  const handleLogout = async () => {
+  if (window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+    setLoading(true); // Afficher le loader pendant la déconnexion
+    
+    try {
+      console.log('🔄 Début de la déconnexion...');
+      
+      // Appeler la méthode logout de ApiService
+      const result = await ApiService.logout();
+      
+      console.log('✅ Déconnexion réussie:', result.message);
+      
+      // Nettoyer les données locales du dashboard
       setMedicaments([]);
       setOrdonnances([]);
       setMedecins([]);
       setError('');
       
-      // Ajouter ici la logique de déconnexion
-      alert('Déconnexion réussie!');
+      // Message de confirmation (optionnel)
+      alert('Déconnexion réussie !');
+      
+      // Redirection vers MedicationSearch (page d'accueil)
+      navigate('/');
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de la déconnexion:', error);
+      
+      // Même en cas d'erreur, on nettoie et redirige
+      // car le localStorage a déjà été nettoyé par ApiService
+      setMedicaments([]);
+      setOrdonnances([]);
+      setMedecins([]);
+      setError('');
+      
+      // Notification d'erreur (optionnel)
+      alert('Déconnexion effectuée (avec quelques erreurs techniques)');
+      
+      // Rediriger quand même
+      navigate('/');
+      
+    } finally {
+      setLoading(false);
     }
-  };
+  }
+};
 
   // Fonction pour gérer la mise à jour des données après ajout/modification
   const handleDataUpdate = useCallback((type) => {
@@ -327,16 +365,6 @@ const PharmacyDashboard = () => {
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Bouton de rafraîchissement */}
-              <button
-                onClick={refreshData}
-                disabled={loading}
-                className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                Actualiser
-              </button>
-              
               {/* Bouton de déconnexion */}
               <button
                 onClick={handleLogout}
@@ -379,7 +407,6 @@ const PharmacyDashboard = () => {
           </div>
         </div>
       )}
-
 
       <br />
       <div className="flex flex-1 overflow-hidden">

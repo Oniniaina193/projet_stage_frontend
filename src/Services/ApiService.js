@@ -3,6 +3,101 @@
 const API_BASE_URL = 'http://localhost:8000/api'; // Ajustez selon votre configuration
 
 class ApiService {
+
+  // ==================== MÉTHODES D'AUTHENTIFICATION ====================
+  
+  /**
+   * Obtenir le token d'authentification depuis localStorage
+   */
+  static getAuthToken() {
+    return localStorage.getItem('auth_token');
+  }
+
+  /**
+   * Créer les headers avec authentification
+   */
+  static getAuthHeaders(includeContentType = true) {
+    const headers = {
+      'Accept': 'application/json',
+    };
+
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    const token = this.getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  /**
+   * Déconnexion - Appeler l'API Laravel et nettoyer le localStorage
+   */
+  static async logout() {
+    try {
+      console.log('🔄 Début de la déconnexion...');
+      
+      const token = this.getAuthToken();
+      
+      if (token) {
+        // Appeler l'endpoint de déconnexion Laravel
+        const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+          method: 'POST',
+          headers: this.getAuthHeaders()
+        });
+
+        if (!response.ok) {
+          console.warn('⚠️ Erreur lors de la déconnexion côté serveur, mais on continue...');
+          // On continue même si l'appel échoue pour nettoyer le côté client
+        } else {
+          const data = await response.json();
+          console.log('✅ Déconnexion côté serveur réussie:', data.message);
+        }
+      }
+
+      // Nettoyer le localStorage (toujours faire ça, même si l'appel API échoue)
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_info');
+      
+      console.log('✅ Nettoyage localStorage terminé');
+      
+      return {
+        success: true,
+        message: 'Déconnexion réussie'
+      };
+
+    } catch (error) {
+      console.error('❌ Erreur lors de la déconnexion:', error);
+      
+      // Même en cas d'erreur, on nettoie le localStorage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_info');
+      
+      // On retourne quand même un succès car le nettoyage local est fait
+      return {
+        success: true,
+        message: 'Déconnexion locale réussie'
+      };
+    }
+  }
+
+  /**
+   * Vérifier si l'utilisateur est connecté
+   */
+  static isAuthenticated() {
+    return !!this.getAuthToken();
+  }
+
+  /**
+   * Obtenir les informations utilisateur depuis localStorage
+   */
+  static getUserInfo() {
+    const userInfo = localStorage.getItem('user_info');
+    return userInfo ? JSON.parse(userInfo) : null;
+  }
   
   // ==================== MÉTHODES MÉDICAMENTS ====================
   

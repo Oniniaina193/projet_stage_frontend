@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Server, User, Lock, Plus } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-export default function PharmacyLogin() {
+export default function PharmacyLogin({ onReturnToHome }) {
   const [formData, setFormData] = useState({
-    serverAddress: '',
     username: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -16,58 +19,128 @@ export default function PharmacyLogin() {
       ...prev,
       [name]: value
     }));
+    // Effacer l'erreur quand l'utilisateur tape
+    if (error) setError('');
   };
 
   const handleSubmit = async () => {
+    // Validation des champs
+    if (!formData.username.trim() || !formData.password.trim()) {
+      setError('Veuillez remplir tous les champs');
+      return;
+    }
+
     setIsLoading(true);
+    setError('');
     
-    // Simulation de la connexion
-    setTimeout(() => {
+    try {
+      // Récupérer l'état de la checkbox "Se souvenir de moi"
+      const rememberCheckbox = document.getElementById('remember');
+      
+      const response = await fetch('http://localhost:8000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+          remember: rememberCheckbox ? rememberCheckbox.checked : false
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Stocker le token et les infos utilisateur
+        localStorage.setItem('auth_token', data.data.token);
+        localStorage.setItem('user_info', JSON.stringify(data.data.user));
+        
+        // Log pour débuggage
+        console.log('Connexion réussie:', data.data.user);
+        console.log('Token stocké:', data.data.token);
+        
+        // Redirection vers le dashboard
+        navigate('/dashboard');
+        
+      } else {
+        // Afficher les erreurs
+        if (data.errors && data.errors.username) {
+          setError(data.errors.username[0]);
+        } else {
+          setError(data.message || 'Erreur de connexion');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur de connexion:', error);
+      setError('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+    } finally {
       setIsLoading(false);
-      console.log('Tentative de connexion:', formData);
-      alert('Connexion simulée - Implémentez votre logique de connexion ici');
-    }, 1500);
+    }
+  };
+
+  // Gestion de la soumission par Enter
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  // Fonction pour retourner à l'accueil
+  const handleReturnToHome = () => {
+    navigate('/'); // Redirige vers la route "/"
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">PharmaGestion</h1>
-          <p className="text-gray-600">Système de gestion pharmaceutique</p>
-        </div>
-
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-blue-100 to-white flex items-center justify-center p-4">
+      <div className="w-full max-w-md mx-auto">
         {/* Formulaire de connexion */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-          <div className="space-y-6">
-            {/* Adresse serveur */}
-            <div className="flex items-center space-x-4">
-              <label htmlFor="serverAddress" className="text-sm font-medium text-gray-700 w-32 flex-shrink-0">
-                Adresse du serveur
-              </label>
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Server className="h-5 w-5 text-gray-400" />
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 relative">
+          {/* Bouton croix rouge */}
+          <button
+            onClick={handleReturnToHome}
+            className="absolute top-4 right-4 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-all duration-200 transform hover:scale-110 shadow-lg"
+            title="Retour à l'accueil"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">PharmaGestion</h1>
+            <p className="text-gray-600">Système de gestion pharmaceutique</p>
+          </div>
+
+          {/* Message d'erreur */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">!</span>
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  id="serverAddress"
-                  name="serverAddress"
-                  value={formData.serverAddress}
-                  onChange={handleInputChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="192.168.1.100:3000"
-                  required
-                />
+                <div className="ml-3">
+                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+                <button
+                  onClick={() => setError('')}
+                  className="ml-auto text-red-400 hover:text-red-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
+          )}
 
+          <div className="space-y-6">
             {/* Nom d'utilisateur */}
-            <div className="flex items-center space-x-4">
-              <label htmlFor="username" className="text-sm font-medium text-gray-700 w-32 flex-shrink-0">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
                 Nom d'utilisateur
               </label>
-              <div className="relative flex-1">
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-gray-400" />
                 </div>
@@ -77,19 +150,21 @@ export default function PharmacyLogin() {
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
+                  onKeyPress={handleKeyPress}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="admin"
+                  placeholder="Votre nom d'utilisateur"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
             {/* Mot de passe */}
-            <div className="flex items-center space-x-4">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700 w-32 flex-shrink-0">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Mot de passe
               </label>
-              <div className="relative flex-1">
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
@@ -99,14 +174,17 @@ export default function PharmacyLogin() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
+                  onKeyPress={handleKeyPress}
                   className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                   placeholder="••••••••"
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
@@ -125,6 +203,7 @@ export default function PharmacyLogin() {
                   name="remember"
                   type="checkbox"
                   className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                  disabled={isLoading}
                 />
                 <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
                   Se souvenir de moi
@@ -138,9 +217,10 @@ export default function PharmacyLogin() {
             </div>
 
             {/* Bouton de connexion */}
-            <div
+            <button
               onClick={handleSubmit}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+              disabled={isLoading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isLoading ? (
                 <div className="flex items-center">
@@ -150,7 +230,7 @@ export default function PharmacyLogin() {
               ) : (
                 'Se connecter'
               )}
-            </div>
+            </button>
           </div>
 
           {/* Message d'aide */}
