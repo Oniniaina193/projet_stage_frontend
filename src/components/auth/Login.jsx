@@ -88,17 +88,14 @@ export default function PharmacyLogin({ onReturnToHome }) {
     }
   };
 
-  // Fonction pour retourner à l'accueil
   const handleReturnToHome = () => {
-    navigate('/'); // Redirige vers la route "/"
+    navigate('/'); 
   };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-blue-100 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-md mx-auto">
-        {/* Formulaire de connexion */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 relative">
-          {/* Bouton croix rouge */}
           <button
             onClick={handleReturnToHome}
             className="absolute top-4 right-4 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-all duration-200 transform hover:scale-110 shadow-lg"
@@ -112,7 +109,6 @@ export default function PharmacyLogin({ onReturnToHome }) {
             <p className="text-gray-600">Système de gestion pharmaceutique</p>
           </div>
 
-          {/* Message d'erreur */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
               <div className="flex items-center">
@@ -135,7 +131,6 @@ export default function PharmacyLogin({ onReturnToHome }) {
           )}
 
           <div className="space-y-6">
-            {/* Nom d'utilisateur */}
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
                 Nom d'utilisateur
@@ -159,7 +154,6 @@ export default function PharmacyLogin({ onReturnToHome }) {
               </div>
             </div>
 
-            {/* Mot de passe */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Mot de passe
@@ -195,7 +189,6 @@ export default function PharmacyLogin({ onReturnToHome }) {
               </div>
             </div>
 
-            {/* Options additionnelles */}
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
@@ -216,7 +209,6 @@ export default function PharmacyLogin({ onReturnToHome }) {
               </div>
             </div>
 
-            {/* Bouton de connexion */}
             <button
               onClick={handleSubmit}
               disabled={isLoading}
@@ -233,7 +225,6 @@ export default function PharmacyLogin({ onReturnToHome }) {
             </button>
           </div>
 
-          {/* Message d'aide */}
           <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
             <div className="flex">
               <div className="flex-shrink-0">

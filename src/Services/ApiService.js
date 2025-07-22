@@ -1,21 +1,10 @@
-// ApiService.js - Corrections
-
-const API_BASE_URL = 'http://localhost:8000/api'; // Ajustez selon votre configuration
-
+const API_BASE_URL = 'http://localhost:8000/api'; 
 class ApiService {
 
-  // ==================== MÉTHODES D'AUTHENTIFICATION ====================
-  
-  /**
-   * Obtenir le token d'authentification depuis localStorage
-   */
   static getAuthToken() {
     return localStorage.getItem('auth_token');
   }
 
-  /**
-   * Créer les headers avec authentification
-   */
   static getAuthHeaders(includeContentType = true) {
     const headers = {
       'Accept': 'application/json',
@@ -33,9 +22,7 @@ class ApiService {
     return headers;
   }
 
-  /**
-   * Déconnexion - Appeler l'API Laravel et nettoyer le localStorage
-   */
+  //deconnexion
   static async logout() {
     try {
       console.log('🔄 Début de la déconnexion...');
@@ -98,8 +85,6 @@ class ApiService {
     const userInfo = localStorage.getItem('user_info');
     return userInfo ? JSON.parse(userInfo) : null;
   }
-  
-  // ==================== MÉTHODES MÉDICAMENTS ====================
   
   // Méthode pour créer un médicament
   static async createMedicament(medicamentData) {
@@ -197,8 +182,6 @@ class ApiService {
     }
   }
 
-  // ==================== MÉTHODES MÉDECINS ====================
-
   /**
    * Récupérer tous les médecins avec pagination et recherche
    */
@@ -226,9 +209,7 @@ class ApiService {
     }
   }
 
-  /**
-   * Créer un nouveau médecin
-   */
+  //Créer nouveau médecin
   static async createMedecin(medecinData) {
     try {
       const response = await fetch(`${API_BASE_URL}/medecins`, {
@@ -252,9 +233,9 @@ class ApiService {
     }
   }
 
-  /**
-   * Récupérer un médecin spécifique
-   */
+  
+   //Récupérer un médecin spécifique
+  
   static async getMedecin(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/medecins/${id}`, {
@@ -276,9 +257,7 @@ class ApiService {
     }
   }
 
-  /**
-   * Mettre à jour un médecin
-   */
+ //Mettre à jour un médecin
   static async updateMedecin(id, medecinData) {
     try {
       console.log('ApiService.updateMedecin - ID:', id, 'Data:', medecinData);
@@ -304,9 +283,7 @@ class ApiService {
     }
   }
 
-  /**
-   * Supprimer un médecin
-   */
+ //Supprimer un médecin
   static async deleteMedecin(id) {
     try {
       console.log('ApiService.deleteMedecin - ID:', id);
@@ -330,9 +307,7 @@ class ApiService {
     }
   }
 
-  /**
-   * Restaurer un médecin
-   */
+ //Restaurer un médecin
   static async restoreMedecin(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/medecins/${id}/restore`, {
@@ -354,9 +329,7 @@ class ApiService {
     }
   }
 
-  /**
-   * Récupérer les spécialités
-   */
+ //Récupérer les spécialités
   static async getSpecialites() {
     try {
       const response = await fetch(`${API_BASE_URL}/medecins/specialites`, {
@@ -378,9 +351,7 @@ class ApiService {
     }
   }
 
-  /**
-   * Récupérer les statistiques des médecins
-   */
+ //Récupérer les statistiques des médecins
   static async getStatistiquesMedecins() {
     try {
       const response = await fetch(`${API_BASE_URL}/medecins/statistiques`, {
