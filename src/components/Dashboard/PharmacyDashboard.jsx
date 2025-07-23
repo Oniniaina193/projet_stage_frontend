@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Pill, LogOut, User, FileText, Users, Clock, UserCircle } from 'lucide-react';
+import { Pill, LogOut, User, FileText, Users, Clock, UserCircle, Package, Activity } from 'lucide-react';
 import ApiService from '../../Services/ApiService';
 import { useNavigate } from 'react-router-dom';
 
@@ -235,7 +235,7 @@ const PharmacyDashboard = () => {
       setError('');
       
       // Message de confirmation (optionnel)
-      alert('Déconnexion réussie !');
+      //alert('Déconnexion réussie !');
       
       // Redirection vers MedicationSearch (page d'accueil)
       navigate('/');
@@ -251,7 +251,7 @@ const PharmacyDashboard = () => {
       setError('');
       
       // Notification d'erreur (optionnel)
-      alert('Déconnexion effectuée (avec quelques erreurs techniques)');
+      //alert('Déconnexion effectuée (avec quelques erreurs techniques)');
       
       // Rediriger quand même
       navigate('/');
@@ -360,8 +360,19 @@ const PharmacyDashboard = () => {
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Pill className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">PharmaCare Dashboard</h1>
+              <div className="rounded-lg shadow-lg overflow-hidden bg-white p-1">
+                <img 
+                  src="/images/logoPharmacie.png" 
+                  alt="Logo PharmaGestion" 
+                  className="h-10 w-10 object-contain"
+                />
+              </div>
+              <div className="ml-3">
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  PharmaGestion
+                </h1>
+                <p className="text-xs text-gray-500 hidden sm:block">Système de gestion pharmaceutique</p>
+              </div>
             </div>
             
             <div className="flex items-center gap-4">
@@ -376,6 +387,7 @@ const PharmacyDashboard = () => {
             </div>
           </div>
         </div>
+        
       </header>
 
       {/* Message d'erreur avec bouton pour le masquer */}
@@ -408,7 +420,6 @@ const PharmacyDashboard = () => {
         </div>
       )}
 
-      <br />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside className="w-64 bg-white shadow-sm h-full overflow-y-auto">
@@ -422,7 +433,7 @@ const PharmacyDashboard = () => {
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                <User className="h-5 w-5 mr-3" />
+                <Activity className="h-5 w-5 mr-3" />
                 <span>Tableau de Bord</span>
               </button>
               <br />
@@ -452,7 +463,7 @@ const PharmacyDashboard = () => {
                 }`}
               >
                 <UserCircle className="h-5 w-5 mr-3" />
-                <span>Gestion Médecin</span>
+                <span>Gestion des Médecin</span>
                 {medecins && medecins.length > 0 && (
                   <span className="ml-auto bg-blue-500 text-white text-xs rounded-full px-2 py-1">
                     {medecins.length}

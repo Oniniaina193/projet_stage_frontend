@@ -32,8 +32,12 @@ const MedicationSearch = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg shadow-lg">
-                <Package className="h-6 w-6 text-white" />
+              <div className="rounded-lg shadow-lg overflow-hidden bg-white p-1">
+                <img 
+                  src="/images/logoPharmacie.png" 
+                  alt="Logo PharmaGestion" 
+                  className="h-10 w-10 object-contain"
+                />
               </div>
               <div className="ml-3">
                 <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -246,8 +250,12 @@ const MedicationSearch = () => {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center">
             <div className="flex items-center justify-center mb-3">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg">
-                <Package className="h-4 w-4 text-white" />
+              <div className="rounded-lg shadow-lg overflow-hidden bg-white p-1">
+                <img 
+                  src="/images/logoPharmacie.png" 
+                  alt="Logo PharmaGestion" 
+                  className="h-5 w-5 object-contain"
+                />
               </div>
               <span className="ml-2 text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 PharmaGestion

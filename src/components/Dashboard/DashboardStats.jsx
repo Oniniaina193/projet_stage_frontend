@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pill, Users, FileText, Clock, UserCheck } from 'lucide-react';
+import { Pill, Users, FileText, Clock, UserCheck, FileCheck, FileChartLine } from 'lucide-react';
 
 const DashboardStats = ({ medicaments, ordonnances, medecins }) => {
   // Statistiques calculées
@@ -52,7 +52,7 @@ const DashboardStats = ({ medicaments, ordonnances, medecins }) => {
               <p className="text-orange-100">Total Ordonnances</p>
               <p className="text-3xl font-bold">{stats.totalOrdonnances}</p>
             </div>
-            <Clock className="h-12 w-12 text-orange-200" />
+            <FileChartLine className="h-12 w-12 text-orange-200" />
           </div>
         </div>
 

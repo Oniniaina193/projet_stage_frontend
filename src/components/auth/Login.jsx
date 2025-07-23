@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, User, Lock, X } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, X , Package} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function PharmacyLogin({ onReturnToHome }) {
@@ -19,7 +19,6 @@ export default function PharmacyLogin({ onReturnToHome }) {
       ...prev,
       [name]: value
     }));
-    // Effacer l'erreur quand l'utilisateur tape
     if (error) setError('');
   };
 
@@ -57,15 +56,12 @@ export default function PharmacyLogin({ onReturnToHome }) {
         localStorage.setItem('auth_token', data.data.token);
         localStorage.setItem('user_info', JSON.stringify(data.data.user));
         
-        // Log pour débuggage
         console.log('Connexion réussie:', data.data.user);
         console.log('Token stocké:', data.data.token);
         
-        // Redirection vers le dashboard
         navigate('/dashboard');
         
       } else {
-        // Afficher les erreurs
         if (data.errors && data.errors.username) {
           setError(data.errors.username[0]);
         } else {
@@ -93,7 +89,8 @@ export default function PharmacyLogin({ onReturnToHome }) {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-blue-100 to-white flex items-center justify-center p-4">
+     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50"> 
+     <br /><br />
       <div className="w-full max-w-md mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 relative">
           <button
@@ -104,10 +101,21 @@ export default function PharmacyLogin({ onReturnToHome }) {
             <X className="h-5 w-5" />
           </button>
           
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">PharmaGestion</h1>
-            <p className="text-gray-600">Système de gestion pharmaceutique</p>
-          </div>
+          <div className="flex items-center">
+              <div className="rounded-lg shadow-lg overflow-hidden bg-white p-1">
+                <img 
+                  src="/images/logoPharmacie.png" 
+                  alt="Logo PharmaGestion" 
+                  className="h-10 w-10 object-contain"
+                />
+              </div>
+              <div className="ml-3">
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  PharmaGestion
+                </h1>
+                <p className="text-xs text-gray-500 hidden sm:block">Système de gestion pharmaceutique</p>
+              </div>
+            </div>
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
@@ -130,6 +138,7 @@ export default function PharmacyLogin({ onReturnToHome }) {
             </div>
           )}
 
+          <br />
           <div className="space-y-6">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">

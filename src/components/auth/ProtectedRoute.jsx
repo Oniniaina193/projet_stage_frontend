@@ -18,21 +18,18 @@ const ProtectedRoute = ({ children }) => {
     }
     
     try {
-      // Vérifier que les infos utilisateur sont valides (JSON parsable)
       const user = JSON.parse(userInfo);
-      return user && user.id; // S'assurer que l'utilisateur a un ID
+      return user && user.id; 
     } catch (error) {
       console.error('Erreur lors du parsing des infos utilisateur:', error);
       return false;
     }
   };
 
-  // Si l'utilisateur n'est pas authentifié, rediriger vers le login
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
 
-  // Si l'utilisateur est authentifié, afficher le contenu protégé
   return children;
 };
 

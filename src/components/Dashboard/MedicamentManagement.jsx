@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Plus, Edit2, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
 import ApiService from '../../Services/ApiService';
 import { ToastContainer, toast } from 'react-toastify';
@@ -17,152 +17,175 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
   const [success, setSuccess] = useState('');
 
   // Fonction pour réinitialiser le formulaire
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setMedicamentForm({ nom: '', prix: '', stock: '', status: 'sans' });
     setEditingMedicament(null);
     setShowMedicamentForm(false);
     setError('');
     setSuccess('');
-  };
+  }, []);
 
-  // Fonction pour afficher les messages temporaires
-  const showMessage = (message, type = 'success') => {
+  const showMessage = useCallback((message, type = 'success') => {
     if (type === 'success') {
-      setSuccess(message);
-      setTimeout(() => setSuccess(''), 3000);
+      toast.success(message);
     } else {
-      setError(message);
-      setTimeout(() => setError(''), 5000);
+      toast.error(message);
     }
-  };
+  }, []);
 
-  // 3. CORRECTION dans handleMedicamentSubmit
-const handleMedicamentSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
-  setSuccess('');
+  const handleMedicamentSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
 
-  try {
-    // Préparer les données à envoyer
-    const medicamentData = {
-      nom: medicamentForm.nom.trim(),
-      prix: parseFloat(medicamentForm.prix),
-      stock: parseInt(medicamentForm.stock),
-      status: medicamentForm.status
-    };
+    try {
+      // Préparer les données à envoyer
+      const medicamentData = {
+        nom: medicamentForm.nom.trim(),
+        prix: parseFloat(medicamentForm.prix),
+        stock: parseInt(medicamentForm.stock),
+        status: medicamentForm.status
+      };
 
-    // Validation côté client
-    if (!medicamentData.nom || medicamentData.prix < 0 || medicamentData.stock < 0) {
-      throw new Error('Veuillez remplir tous les champs avec des valeurs valides');
-    }
-
-    let response;
-    if (editingMedicament) {
-      // Vérifier que l'ID existe
-      if (!editingMedicament.id_medicament) {
-        throw new Error('ID du médicament manquant pour la modification');
+      // Validation côté client
+      if (!medicamentData.nom || medicamentData.prix < 0 || medicamentData.stock < 0) {
+        throw new Error('Veuillez remplir tous les champs avec des valeurs valides');
       }
-      
-      console.log('Modification du médicament ID:', editingMedicament.id_medicament);
-      console.log('Données à envoyer:', medicamentData);
-      
-      // Modifier un médicament existant
-      response = await ApiService.updateMedicament(editingMedicament.id_medicament, medicamentData);
-      showMessage('Médicament modifié avec succès!');
-      
-      // CORRECTION : Utiliser id_medicament pour la mise à jour
+
+      if (editingMedicament) {
+        const updatedMedicament = { ...editingMedicament, ...medicamentData };
+        
+        // Mettre à jour l'UI immédiatement
+        setMedicaments(prevMedicaments => 
+          prevMedicaments.map(med => 
+            med.id_medicament === editingMedicament.id_medicament 
+              ? updatedMedicament
+              : med
+          )
+        );
+        
+        try {
+          await ApiService.updateMedicament(editingMedicament.id_medicament, medicamentData);
+          showMessage('Médicament modifié avec succès!');
+          resetForm();
+          
+        } catch (apiError) {
+          setMedicaments(prevMedicaments => 
+            prevMedicaments.map(med => 
+              med.id_medicament === editingMedicament.id_medicament 
+                ? editingMedicament 
+                : med
+            )
+          );
+          // Rethrow pour être capturé par le catch principal
+          throw apiError;
+        }
+        
+      } else {
+        
+        const tempId = `temp_${Date.now()}`;
+        const newMedicament = { 
+          ...medicamentData, 
+          id_medicament: tempId,
+          isTemp: true 
+        };
+        
+        // Ajouter immédiatement à l'UI
+        setMedicaments(prevMedicaments => [...prevMedicaments, newMedicament]);
+        
+        try {
+          const response = await ApiService.createMedicament(medicamentData);
+          
+          // Remplacer le médicament temporaire par le vrai
+          if (response && response.data) {
+            setMedicaments(prevMedicaments => 
+              prevMedicaments.map(med => 
+                med.id_medicament === tempId 
+                  ? { ...response.data, isTemp: false }
+                  : med
+              )
+            );
+          }
+          
+          showMessage('Médicament ajouté avec succès!');
+          resetForm();
+          
+        } catch (apiError) {
+          // En cas d'erreur, supprimer le médicament temporaire
+          setMedicaments(prevMedicaments => 
+            prevMedicaments.filter(med => med.id_medicament !== tempId)
+          );
+          // Rethrow pour être capturé par le catch principal
+          throw apiError;
+        }
+      }
+
+    } catch (error) {
+      console.error('Erreur lors de la soumission:', error);
+      showMessage(error.message || 'Erreur lors de la sauvegarde', 'error');
+    }
+  }, [medicamentForm, editingMedicament, setMedicaments, resetForm, showMessage]);
+
+  const editMedicament = useCallback((medicament) => {
+    if (!medicament || !medicament.id_medicament) {
+      console.error('Médicament ou ID manquant:', medicament);
+      toast.error('Médicament introuvable ou ID manquant');
+      return;
+    }
+
+    setMedicamentForm({
+      nom: medicament.nom || '',
+      prix: medicament.prix?.toString() || '',
+      stock: medicament.stock?.toString() || '',
+      status: medicament.status || 'sans'
+    });
+    setEditingMedicament(medicament);
+    setShowMedicamentForm(true);
+    setError('');
+    setSuccess('');
+  }, []);
+
+  const deleteMedicament = useCallback(async (id) => {
+    if (!id) {
+      toast.error('ID du médicament manquant');
+      return;
+    }
+
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce médicament ?')) {
+      return;
+    }
+
+    // Sauvegarder l'état actuel pour rollback
+    const medicamentToDelete = medicaments.find(med => med.id_medicament === id);
+    
+    try {
+      // Supprimer immédiatement de l'UI
       setMedicaments(prevMedicaments => 
-        prevMedicaments.map(med => 
-          med.id_medicament === editingMedicament.id_medicament 
-            ? { ...med, ...medicamentData } 
-            : med
-        )
+        prevMedicaments.filter(med => med.id_medicament !== id)
       );
-    } else {
-      // Créer un nouveau médicament
-      response = await ApiService.createMedicament(medicamentData);
-      console.log('Réponse création:', response);
-      showMessage('Médicament ajouté avec succès!');
       
-      // Ajouter le nouveau médicament à la liste locale
-      if (response && response.data) {
-        setMedicaments(prevMedicaments => [...prevMedicaments, response.data]);
+      await ApiService.deleteMedicament(id);
+      
+      toast.success('Médicament supprimé avec succès');
+      
+    } catch (error) {
+      // En cas d'erreur, restaurer le médicament
+      if (medicamentToDelete) {
+        setMedicaments(prevMedicaments => [...prevMedicaments, medicamentToDelete]);
       }
+      console.error('Erreur lors de la suppression:', error);
+      toast.error(error.message || 'Erreur lors de la suppression');
     }
+  }, [medicaments, setMedicaments]);
 
-    // Réinitialiser le formulaire après succès
-    resetForm();
+  const safeMedicaments = useMemo(() => 
+    Array.isArray(medicaments) ? medicaments : [], 
+    [medicaments]
+  );
 
-    // Optionnel : recharger les données depuis l'API si nécessaire
-    if (onDataChange) {
-      await onDataChange();
-    }
-
-  } catch (error) {
-    console.error('Erreur lors de la soumission:', error);
-    showMessage(error.message || 'Erreur lors de la sauvegarde', 'error');
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const editMedicament = (medicament) => {
-  // Vérifier que le médicament existe et a un ID
-  if (!medicament || !medicament.id_medicament) {
-    console.error('Médicament ou ID manquant:', medicament);
-    toast.error('Médicament introuvable ou ID manquant');
-    return;
-  }
-
-  console.log('Édition du médicament:', medicament);
-
-  setMedicamentForm({
-    nom: medicament.nom || '',
-    prix: medicament.prix?.toString() || '',
-    stock: medicament.stock?.toString() || '',
-    status: medicament.status || 'sans'
-  });
-  setEditingMedicament(medicament);
-  setShowMedicamentForm(true);
-  setError('');
-  setSuccess('');
-};
-
-// 2. CORRECTION dans deleteMedicament
-const deleteMedicament = async (id) => {
-  if (!id) {
-    toast.error('ID du médicament manquant');
-    return;
-  }
-
-  // Confirmation avant suppression
-  if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce médicament ?')) {
-    return;
-  }
-
-  try {
-    setLoading(true);
-    
-    // Appel à l'API avec l'ID correct
-    await ApiService.deleteMedicament(id);
-    
-    // CORRECTION : Utiliser id_medicament pour filtrer
-    setMedicaments(prevMedicaments => 
-      prevMedicaments.filter(med => med.id_medicament !== id)
-    );
-    
-    toast.success('Médicament supprimé avec succès');
-  } catch (error) {
-    console.error('Erreur lors de la suppression:', error);
-    toast.error(error.message || 'Erreur lors de la suppression');
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Vérifier que medicaments est un tableau
-  const safeMedicaments = Array.isArray(medicaments) ? medicaments : [];
+  const handleFormChange = useCallback((field, value) => {
+    setMedicamentForm(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   return (
     <div className="space-y-6 w-full h-full">
@@ -181,21 +204,6 @@ const deleteMedicament = async (id) => {
         </button>
       </div>
 
-      {/* Messages d'erreur et de succès */}
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex items-center gap-2">
-          <AlertCircle className="h-5 w-5" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded flex items-center gap-2">
-          <CheckCircle className="h-5 w-5" />
-          <span>{success}</span>
-        </div>
-      )}
-
       {/* Formulaire d'ajout/modification */}
       {showMedicamentForm && (
         <div className="bg-white p-6 rounded-lg shadow-lg border">
@@ -210,7 +218,7 @@ const deleteMedicament = async (id) => {
               <input
                 type="text"
                 value={medicamentForm.nom}
-                onChange={(e) => setMedicamentForm({...medicamentForm, nom: e.target.value})}
+                onChange={(e) => handleFormChange('nom', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
@@ -226,7 +234,7 @@ const deleteMedicament = async (id) => {
                 step="0.01"
                 min="0"
                 value={medicamentForm.prix}
-                onChange={(e) => setMedicamentForm({...medicamentForm, prix: e.target.value})}
+                onChange={(e) => handleFormChange('prix', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
@@ -241,7 +249,7 @@ const deleteMedicament = async (id) => {
                 type="number"
                 min="0"
                 value={medicamentForm.stock}
-                onChange={(e) => setMedicamentForm({...medicamentForm, stock: e.target.value})}
+                onChange={(e) => handleFormChange('stock', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
@@ -254,7 +262,7 @@ const deleteMedicament = async (id) => {
               </label>
               <select
                 value={medicamentForm.status}
-                onChange={(e) => setMedicamentForm({...medicamentForm, status: e.target.value})}
+                onChange={(e) => handleFormChange('status', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={loading}
               >
@@ -268,11 +276,7 @@ const deleteMedicament = async (id) => {
                 disabled={loading}
                 className="bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
               >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <CheckCircle className="h-4 w-4" />
-                )}
+                <CheckCircle className="h-4 w-4" />
                 {editingMedicament ? 'Modifier' : 'Ajouter'}
               </button>
               <button
@@ -327,9 +331,13 @@ const deleteMedicament = async (id) => {
                 </tr>
               ) : (
                 safeMedicaments.map((medicament) => (
-                  <tr key={medicament.id_medicament} className="hover:bg-gray-50">
+                  <tr 
+                    key={medicament.id_medicament} 
+                    className={`hover:bg-gray-50 ${medicament.isTemp ? 'opacity-70' : ''}`}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {medicament.nom}
+                      {medicament.isTemp && <span className="text-xs text-gray-500 ml-2">(en cours...)</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {medicament.prix} Ar
@@ -351,14 +359,14 @@ const deleteMedicament = async (id) => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => editMedicament(medicament)}
-                        disabled={loading}
+                        disabled={loading || medicament.isTemp}
                         className="text-blue-600 hover:text-blue-900 disabled:text-blue-300 mr-3 transition-colors"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => deleteMedicament(medicament.id_medicament)}
-                        disabled={loading}
+                        disabled={loading || medicament.isTemp}
                         className="text-red-600 hover:text-red-900 disabled:text-red-300 transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
