@@ -1,12 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, User, Package, AlertCircle, CheckCircle, FileText, Heart, Shield, Clock } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import ApiService from '../../Services/ApiService';
 
 const MedicationSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  
   const [medications] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  const navigate = useNavigate();
+
+  // Vérifier l'état d'authentification au chargement du composant
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = () => {
+    // Vérification ultra-rapide (locale uniquement)
+    const hasToken = ApiService.isAuthenticated();
+    setIsAuthenticated(hasToken);
+    setIsCheckingAuth(false);
+    
+    // Vérification en arrière-plan (optionnelle) pour valider le token
+    if (hasToken) {
+      validateTokenInBackground();
+    }
+  };
+
+  const validateTokenInBackground = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/auth/check', {
+        method: 'GET',
+        headers: ApiService.getAuthHeaders()
+      });
+      
+      if (!response.ok) {
+        // Token invalide, déconnecter silencieusement
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_info');
+        setIsAuthenticated(false);
+      }
+    } catch (error) {
+      console.error('Erreur validation token:', error);
+    }
+  };
 
   const filteredMedications = medications.filter(med =>
     med.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -19,15 +57,16 @@ const MedicationSearch = () => {
     return { color: 'red', label: 'Stock faible' };
   };
 
-  const navigate = useNavigate();               
-
-  const handlePharmacistLogin = () => {
-    navigate("/login");                          
+  const handlePharmacistAction = () => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    } else {
+      navigate("/login");
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Header avec design amélioré */}
       <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-blue-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -46,23 +85,30 @@ const MedicationSearch = () => {
                 <p className="text-xs text-gray-500 hidden sm:block">Système de gestion pharmaceutique</p>
               </div>
             </div>
+            
             <button
-              onClick={handlePharmacistLogin}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              onClick={handlePharmacistAction}
+              disabled={isCheckingAuth}
+              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                isCheckingAuth 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+              }`}
             >
               <User className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Espace Pharmacien</span>
-              <span className="sm:hidden">Connexion</span>
+              <span className="hidden sm:inline">
+                {isCheckingAuth ? 'Vérification...' : 'Espace Pharmacien'}
+              </span>
+              <span className="sm:hidden">
+                {isCheckingAuth ? '...' : 'Connexion'}
+              </span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Hero Section */}
         <div className="text-center mb-8">
-          
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
             Recherche de <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">médicaments</span>
           </h2>
@@ -70,7 +116,6 @@ const MedicationSearch = () => {
             Trouvez rapidement tous les médicaments disponibles avec leurs prix et stocks
           </p>
           
-          {/* Search Bar Améliorée */}
           <div className="max-w-lg mx-auto relative mb-6">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
@@ -84,7 +129,6 @@ const MedicationSearch = () => {
             />
           </div>
 
-          {/* Statistiques */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/20">
               <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg mb-3 mx-auto">
@@ -110,7 +154,6 @@ const MedicationSearch = () => {
           </div>
         </div>
 
-        {/* Results Section */}
         {medications.length > 0 ? (
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
@@ -221,12 +264,9 @@ const MedicationSearch = () => {
             <h3 className="text-xl font-bold text-gray-900 mb-3">
               Aucun médicament disponible
             </h3>
-            
-            
           </div>
         )}
 
-        {/* Info Section */}
         <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
           <div className="flex items-start">
             <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -245,7 +285,6 @@ const MedicationSearch = () => {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="bg-white/80 backdrop-blur-md border-t border-gray-200 mt-12">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center">

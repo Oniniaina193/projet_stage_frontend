@@ -1,6 +1,12 @@
 const API_BASE_URL = 'http://localhost:8000/api'; 
 class ApiService {
 
+   static authCheckCache = {
+    isValid: null,
+    timestamp: null,
+    duration: 5 * 60 * 1000 
+  };
+
   static getAuthToken() {
     return localStorage.getItem('auth_token');
   }
@@ -45,7 +51,7 @@ class ApiService {
         }
       }
 
-      // Nettoyer le localStorage (toujours faire ça, même si l'appel API échoue)
+      // Nettoyer le localStorage
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_info');
       
@@ -71,16 +77,12 @@ class ApiService {
     }
   }
 
-  /**
-   * Vérifier si l'utilisateur est connecté
-   */
+  //Vérifier si l'utilisateur est connecté
   static isAuthenticated() {
     return !!this.getAuthToken();
   }
 
-  /**
-   * Obtenir les informations utilisateur depuis localStorage
-   */
+  //Obtenir les informations utilisateur depuis localStorage
   static getUserInfo() {
     const userInfo = localStorage.getItem('user_info');
     return userInfo ? JSON.parse(userInfo) : null;
@@ -182,9 +184,7 @@ class ApiService {
     }
   }
 
-  /**
-   * Récupérer tous les médecins avec pagination et recherche
-   */
+  //Récupérer tous les médecins avec pagination et recherche
   static async getMedecins(params = {}) {
     try {
       const queryString = new URLSearchParams(params).toString();
@@ -235,7 +235,6 @@ class ApiService {
 
   
    //Récupérer un médecin spécifique
-  
   static async getMedecin(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/medecins/${id}`, {

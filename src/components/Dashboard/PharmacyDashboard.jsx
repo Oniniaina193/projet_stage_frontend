@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Pill, LogOut, User, FileText, Users, Clock, UserCircle, Package, Activity } from 'lucide-react';
+import { Pill, LogOut, User, FileText, Users, Clock, UserCircle, Package, Activity, Home } from 'lucide-react';
 import ApiService from '../../Services/ApiService';
 import { useNavigate } from 'react-router-dom';
 
-// Import des composants modulaires
 import DashboardStats from './DashboardStats';
 import MedicamentManagement from './MedicamentManagement';
 import MedecinManagement from './MedecinManagement';
@@ -25,7 +24,6 @@ const PharmacyDashboard = () => {
   const [showMedecinForm, setShowMedecinForm] = useState(false);
   const [editingMedecin, setEditingMedecin] = useState(null);
 
-  // Fonction pour charger les médicaments avec gestion d'erreur améliorée
   const loadMedicaments = useCallback(async () => {
     try {
         console.log('🔄 Chargement des médicaments...');
@@ -60,7 +58,7 @@ const PharmacyDashboard = () => {
         
     } catch (error) {
         console.error('❌ Erreur lors du chargement des médicaments:', error);
-        setMedicaments([]); // Assurer que c'est un tableau vide en cas d'erreur
+        setMedicaments([]); 
         return [];
     }
   }, []);
@@ -70,7 +68,6 @@ const PharmacyDashboard = () => {
     try {
       console.log('🔄 Chargement des ordonnances...');
       
-      // Vérifiez si vous avez une méthode getOrdonnances dans ApiService
       if (typeof ApiService.getOrdonnances === 'function') {
         const response = await ApiService.getOrdonnances();
         console.log('📦 Réponse API ordonnances:', response);
@@ -151,7 +148,7 @@ const PharmacyDashboard = () => {
   // Fonction pour charger toutes les données
   const loadAllData = useCallback(async () => {
     setLoading(true);
-    setError(''); // Réinitialiser l'erreur
+    setError(''); 
     
     try {
       console.log('🔄 Chargement de toutes les données...');
@@ -179,15 +176,14 @@ const PharmacyDashboard = () => {
     }
   }, [loadMedicaments, loadOrdonnances, loadMedecins]);
 
-  // Fonction pour effacer l'erreur
   const clearError = () => {
     setError('');
   };
 
-  // Fonction pour rafraîchir les données (utilisée uniquement par les composants enfants si nécessaire)
+  // Fonction pour rafraîchir les données 
   const refreshData = useCallback(() => {
     console.log('🔄 Rafraîchissement des données demandé...');
-    clearError(); // Effacer l'erreur avant de recharger
+    clearError(); 
     loadAllData();
   }, [loadAllData]);
 
@@ -216,14 +212,18 @@ const PharmacyDashboard = () => {
     }
   }, [currentView, loadMedicaments, loadMedecins, loadOrdonnances]);
 
+  const handleReturnHome = () => {
+      navigate('/');
+    
+  };
+
   const handleLogout = async () => {
   if (window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-    setLoading(true); // Afficher le loader pendant la déconnexion
+    setLoading(true); 
     
     try {
       console.log('🔄 Début de la déconnexion...');
       
-      // Appeler la méthode logout de ApiService
       const result = await ApiService.logout();
       
       console.log('✅ Déconnexion réussie:', result.message);
@@ -233,11 +233,6 @@ const PharmacyDashboard = () => {
       setOrdonnances([]);
       setMedecins([]);
       setError('');
-      
-      // Message de confirmation (optionnel)
-      //alert('Déconnexion réussie !');
-      
-      // Redirection vers MedicationSearch (page d'accueil)
       navigate('/');
       
     } catch (error) {
@@ -249,11 +244,6 @@ const PharmacyDashboard = () => {
       setOrdonnances([]);
       setMedecins([]);
       setError('');
-      
-      // Notification d'erreur (optionnel)
-      //alert('Déconnexion effectuée (avec quelques erreurs techniques)');
-      
-      // Rediriger quand même
       navigate('/');
       
     } finally {
@@ -266,8 +256,8 @@ const PharmacyDashboard = () => {
   const handleDataUpdate = useCallback((type) => {
     console.log(`🔄 Mise à jour des données pour: ${type}`);
     
-    clearError(); // Effacer l'erreur avant de recharger
-    
+    clearError(); 
+
     switch (type) {
       case 'medicaments':
         loadMedicaments();
@@ -289,12 +279,9 @@ const PharmacyDashboard = () => {
       case 'dashboard':
         return (
           <DashboardStats 
-            medicaments={medicaments || []} 
-            ordonnances={ordonnances || []} 
-            medecins={medecins || []}
-            loading={loading}
-            onRefresh={refreshData}
-            lastUpdate={lastUpdate}
+            medicaments={medicaments}
+            ordonnances={ordonnances}  
+            medecins={medecins}
           />
         );
       case 'medicaments':
@@ -355,7 +342,6 @@ const PharmacyDashboard = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -376,13 +362,12 @@ const PharmacyDashboard = () => {
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Bouton de déconnexion */}
               <button
-                onClick={handleLogout}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                onClick={handleReturnHome}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
               >
-                <LogOut className="h-4 w-4" />
-                Déconnexion
+                <Home className="h-4 w-4" />
+                Retour à l'accueil
               </button>
             </div>
           </div>
@@ -390,7 +375,6 @@ const PharmacyDashboard = () => {
         
       </header>
 
-      {/* Message d'erreur avec bouton pour le masquer */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-4 mt-4 rounded relative">
           <div className="flex justify-between items-start">
@@ -421,9 +405,8 @@ const PharmacyDashboard = () => {
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white shadow-sm h-full overflow-y-auto">
-          <nav className="mt-8">
+        <aside className="w-64 bg-white shadow-sm h-full overflow-y-auto flex flex-col">
+          <nav className="mt-8 flex-1">
             <div className="px-4 space-y-2">
               <button
                 onClick={() => setCurrentView('dashboard')}
@@ -463,7 +446,7 @@ const PharmacyDashboard = () => {
                 }`}
               >
                 <UserCircle className="h-5 w-5 mr-3" />
-                <span>Gestion des Médecin</span>
+                <span>Gestion des Médecins</span>
                 {medecins && medecins.length > 0 && (
                   <span className="ml-auto bg-blue-500 text-white text-xs rounded-full px-2 py-1">
                     {medecins.length}
@@ -501,9 +484,18 @@ const PharmacyDashboard = () => {
               </button>
             </div>
           </nav>
+          
+          <div className="px-4 pb-4 border-t border-gray-200 pt-4">
+            <button
+              onClick={handleLogout}
+              className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Déconnexion
+            </button>
+          </div>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 min-w-0 overflow-y-auto p-6 w-full h-full">
           {loading && (
             <div className="flex flex-col justify-center items-center h-64">
