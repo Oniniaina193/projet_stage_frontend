@@ -9,34 +9,40 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
   const [showMedecinForm, setShowMedecinForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [medecinForm, setMedecinForm] = useState({
-    nom: '',
-    prenom: '',
-    specialite: '',
-    numero_ordre: '',
+    nom_complet: '',
+    numero_ordre: '', // ONM
     telephone: '',
-    email: '',
-    adresse: '',
-    actif: true
+    adresse: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
+
+  // Fonction de validation du téléphone
+  const validateTelephone = useCallback((value) => {
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!value) {
+      return 'Le numéro de téléphone est obligatoire';
+    }
+    if (!phoneRegex.test(value)) {
+      return 'Le numéro doit contenir exactement 10 chiffres';
+    }
+    return '';
+  }, []);
 
   // Fonction pour réinitialiser le formulaire
   const resetForm = useCallback(() => {
     setMedecinForm({
-      nom: '',
-      prenom: '',
-      specialite: '',
+      nom_complet: '',
       numero_ordre: '',
       telephone: '',
-      email: '',
-      adresse: '',
-      actif: true
+      adresse: ''
     });
     setEditingMedecin(null);
     setShowMedecinForm(false);
     setError('');
     setSuccess('');
+    setValidationErrors({});
   }, []);
 
   const showMessage = useCallback((message, type = 'success') => {
@@ -55,31 +61,25 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
     try {
       // Préparer les données à envoyer
       const medecinData = {
-        nom: medecinForm.nom.trim(),
-        prenom: medecinForm.prenom.trim(),
-        specialite: medecinForm.specialite.trim(),
+        nom_complet: medecinForm.nom_complet.trim(),
         numero_ordre: medecinForm.numero_ordre.trim(),
         telephone: medecinForm.telephone.trim(),
-        email: medecinForm.email.trim(),
-        adresse: medecinForm.adresse.trim(),
-        actif: medecinForm.actif
+        adresse: medecinForm.adresse.trim()
       };
 
       // Validation côté client
-      if (!medecinData.nom || !medecinData.prenom || !medecinData.specialite || 
-          !medecinData.numero_ordre || !medecinData.telephone || !medecinData.email || 
-          !medecinData.adresse) {
+      if (!medecinData.nom_complet || !medecinData.numero_ordre || 
+          !medecinData.telephone || !medecinData.adresse) {
         throw new Error('Veuillez remplir tous les champs obligatoires');
       }
 
-      // Validation email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(medecinData.email)) {
-        throw new Error('Veuillez entrer une adresse email valide');
+      // Validation téléphone côté client
+      const phoneError = validateTelephone(medecinData.telephone);
+      if (phoneError) {
+        throw new Error(phoneError);
       }
 
       if (editingMedecin) {
-    
         if (!editingMedecin.id) {
           throw new Error('ID du médecin manquant pour la modification');
         }
@@ -111,14 +111,10 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
           );
           // Pré-remplir formulaire
           setMedecinForm({
-            nom: editingMedecin.nom || '',
-            prenom: editingMedecin.prenom || '',
-            specialite: editingMedecin.specialite || '',
+            nom_complet: editingMedecin.nom_complet || '',
             numero_ordre: editingMedecin.numero_ordre || '',
             telephone: editingMedecin.telephone || '',
-            email: editingMedecin.email || '',
-            adresse: editingMedecin.adresse || '',
-            actif: editingMedecin.actif !== undefined ? editingMedecin.actif : true
+            adresse: editingMedecin.adresse || ''
           });
           setEditingMedecin(editingMedecin);
           setShowMedecinForm(true);
@@ -174,7 +170,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
       console.error('Erreur lors de la soumission:', error);
       showMessage(error.message || 'Erreur lors de la sauvegarde', 'error');
     }
-  }, [medecinForm, editingMedecin, setMedecins, resetForm, showMessage]);
+  }, [medecinForm, editingMedecin, setMedecins, resetForm, showMessage, validateTelephone]);
 
   const editMedecin = useCallback((medecin) => {
     // Vérifier que le médecin existe et a un ID
@@ -185,19 +181,16 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
     }
 
     setMedecinForm({
-      nom: medecin.nom || '',
-      prenom: medecin.prenom || '',
-      specialite: medecin.specialite || '',
+      nom_complet: medecin.nom_complet || '',
       numero_ordre: medecin.numero_ordre || '',
       telephone: medecin.telephone || '',
-      email: medecin.email || '',
-      adresse: medecin.adresse || '',
-      actif: medecin.actif !== undefined ? medecin.actif : true
+      adresse: medecin.adresse || ''
     });
     setEditingMedecin(medecin);
     setShowMedecinForm(true);
     setError('');
     setSuccess('');
+    setValidationErrors({});
   }, []);
 
   const deleteMedecin = useCallback(async (id) => {
@@ -242,17 +235,42 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
     
     const searchLower = searchTerm.toLowerCase();
     return safeMedecins.filter(medecin => 
-      medecin.nom?.toLowerCase().includes(searchLower) ||
-      medecin.prenom?.toLowerCase().includes(searchLower) ||
-      medecin.specialite?.toLowerCase().includes(searchLower) ||
+      medecin.nom_complet?.toLowerCase().includes(searchLower) ||
       medecin.numero_ordre?.toLowerCase().includes(searchLower) ||
-      medecin.email?.toLowerCase().includes(searchLower)
+      medecin.telephone?.toLowerCase().includes(searchLower) ||
+      medecin.adresse?.toLowerCase().includes(searchLower)
     );
   }, [safeMedecins, searchTerm]);
 
   const handleFormChange = useCallback((field, value) => {
     setMedecinForm(prev => ({ ...prev, [field]: value }));
-  }, []);
+    
+    // Effacer l'erreur de validation pour ce champ
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  }, [validationErrors]);
+
+  // Nouvelle fonction pour gérer spécifiquement le téléphone
+  const handleTelephoneChange = useCallback((e) => {
+    const value = e.target.value.replace(/\D/g, ''); 
+    
+    // Limiter à 10 chiffres maximum
+    if (value.length <= 10) {
+      setMedecinForm(prev => ({ ...prev, telephone: value }));
+      
+      // Validation en temps réel
+      const error = validateTelephone(value);
+      setValidationErrors(prev => ({
+        ...prev,
+        telephone: error
+      }));
+    }
+  }, [validateTelephone]);
 
   const handleSearchChange = useCallback((e) => {
     setSearchTerm(e.target.value);
@@ -281,52 +299,27 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
           <h3 className="text-lg font-semibold mb-4">
             {editingMedecin ? 'Modifier Médecin' : 'Ajouter Médecin'}
           </h3>
-          <form onSubmit={handleMedecinSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Nom Complet - pleine largeur */}
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nom *
+                Nom Complet <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                value={medecinForm.nom}
-                onChange={(e) => handleFormChange('nom', e.target.value)}
+                value={medecinForm.nom_complet}
+                onChange={(e) => handleFormChange('nom_complet', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
-                placeholder="Nom du médecin"
+                placeholder="Dr. Nom Prénom"
               />
             </div>
+
+           {/* Numéro ONM */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Prénom *
-              </label>
-              <input
-                type="text"
-                value={medecinForm.prenom}
-                onChange={(e) => handleFormChange('prenom', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={loading}
-                placeholder="Prénom du médecin"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Spécialité *
-              </label>
-              <input
-                type="text"
-                value={medecinForm.specialite}
-                onChange={(e) => handleFormChange('specialite', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={loading}
-                placeholder="Spécialité médicale"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                N° Ordre *
+                Numéro ONM <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -335,40 +328,47 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
-                placeholder="Numéro d'ordre"
+                placeholder="Numéro d'ordre national des médecins"
               />
             </div>
+
+           {/* Téléphone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Téléphone *
+                Téléphone <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
                 value={medecinForm.telephone}
-                onChange={(e) => handleFormChange('telephone', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={handleTelephoneChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  validationErrors.telephone 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+                }`}
                 required
                 disabled={loading}
-                placeholder="Numéro de téléphone"
+                placeholder="0123456789"
+                maxLength="10"
               />
+                {validationErrors.telephone && (
+                <div className="mt-1 flex items-center text-red-600 text-sm">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {validationErrors.telephone}
+                </div>
+                )}
+                {medecinForm.telephone && !validationErrors.telephone && medecinForm.telephone.length === 10 && (
+                <div className="mt-1 flex items-center text-green-600 text-sm">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Numéro valide
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={medecinForm.email}
-                onChange={(e) => handleFormChange('email', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={loading}
-                placeholder="Adresse email"
-              />
-            </div>
+
+            {/* Adresse - pleine largeur */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Adresse *
+                Adresse <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={medecinForm.adresse}
@@ -377,13 +377,16 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
-                placeholder="Adresse complète"
+                placeholder="Adresse complète du médecin"
               />
             </div>
+
+            {/* Boutons */}
             <div className="md:col-span-2 flex gap-2">
               <button
-                type="submit"
-                disabled={loading}
+                type="button"
+                onClick={handleMedecinSubmit}
+                disabled={loading || validationErrors.telephone}
                 className="bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
               >
                 <CheckCircle className="h-4 w-4" />
@@ -398,7 +401,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
                 Annuler
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
 
@@ -408,7 +411,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Rechercher par nom, prénom, spécialité, numéro d'ordre ou email..."
+            placeholder="Rechercher par nom, numéro ONM, téléphone ou adresse..."
             value={searchTerm}
             onChange={handleSearchChange}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -424,8 +427,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
               <col className="w-3/12" />
               <col className="w-2/12" />
               <col className="w-2/12" />
-              <col className="w-2/12" />
-              <col className="w-2/12" />
+              <col className="w-4/12" />
               <col className="w-1/12" />
             </colgroup>
             <thead className="bg-gray-50">
@@ -434,16 +436,13 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
                   Nom Complet
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Spécialité
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  N° Ordre
+                  N° ONM
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Téléphone
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
+                  Adresse
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -453,7 +452,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredMedecins.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                     {loading ? 'Chargement...' : 
                      searchTerm ? `Aucun médecin trouvé pour "${searchTerm}"` : 
                      'Aucun médecin enregistré'}
@@ -466,11 +465,8 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
                     className={`hover:bg-gray-50 ${medecin.isTemp ? 'opacity-70' : ''}`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      Dr. {medecin.nom} {medecin.prenom}
+                      Dr {medecin.nom_complet}
                       {medecin.isTemp && <span className="text-xs text-gray-500 ml-2">(en cours...)</span>}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {medecin.specialite}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {medecin.numero_ordre}
@@ -478,8 +474,10 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {medecin.telephone}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {medecin.email}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="max-w-xs truncate" title={medecin.adresse}>
+                        {medecin.adresse}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button

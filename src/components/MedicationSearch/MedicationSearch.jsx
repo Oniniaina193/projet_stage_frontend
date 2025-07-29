@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Search, User, Package, AlertCircle, CheckCircle, FileText, Heart, Shield, Clock } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import ApiService from '../../Services/ApiService';
+import Login from '../auth/Login';
 
 const MedicationSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [medications] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  // État pour le login dropdown
+  const [showLogin, setShowLogin] = useState(false);
 
   const navigate = useNavigate();
 
@@ -15,6 +19,13 @@ const MedicationSearch = () => {
   useEffect(() => {
     checkAuthStatus();
   }, []);
+
+  // Fermer le login si l'utilisateur est connecté
+  useEffect(() => {
+    if (isAuthenticated && showLogin) {
+      setShowLogin(false);
+    }
+  }, [isAuthenticated]);
 
   const checkAuthStatus = () => {
     // Vérification ultra-rapide (locale uniquement)
@@ -59,15 +70,38 @@ const MedicationSearch = () => {
 
   const handlePharmacistAction = () => {
     if (isAuthenticated) {
+      // Si l'utilisateur est connecté → aller au dashboard
       navigate("/dashboard");
+    } else if (showLogin) {
+      // Si le login est ouvert → le fermer
+      setShowLogin(false);
     } else {
-      navigate("/login");
+      // Si le login est fermé → l'ouvrir
+      setShowLogin(true);
     }
+  };
+
+  // Callback appelé quand la connexion est réussie
+  const handleLoginSuccess = (user) => {
+    setIsAuthenticated(true);
+    console.log('Utilisateur connecté:', user);
+  };
+
+  // Callback pour fermer le login
+  const handleCloseLogin = () => {
+    setShowLogin(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-blue-100 sticky top-0 z-50">
+      {/* Composant Login Dropdown séparé */}
+      <Login 
+        isOpen={showLogin}
+        onClose={handleCloseLogin}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-blue-100 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
