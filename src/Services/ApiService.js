@@ -12,7 +12,8 @@ class ApiService {
     medicaments: { data: null, timestamp: null, ttl: 5 * 60 * 1000 }, 
     medecins: { data: null, timestamp: null, ttl: 10 * 60 * 1000 },   
     ordonnances: { data: null, timestamp: null, ttl: 2 * 60 * 1000 }, 
-    specialites: { data: null, timestamp: null, ttl: 30 * 60 * 1000 } 
+    specialites: { data: null, timestamp: null, ttl: 30 * 60 * 1000 },
+    familles_suggestions: { data: null, timestamp: null, ttl: 10 * 60 * 1000 } // Nouveau cache pour familles
   };
 
   static getAuthToken() {
@@ -98,6 +99,55 @@ class ApiService {
       errors.adresse = 'L\'adresse est obligatoire';
     } else if (medecinData.adresse.length > 500) {
       errors.adresse = 'L\'adresse ne doit pas dépasser 500 caractères';
+    }
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors,
+      cleanData
+    };
+  }
+
+  /**
+   * Valide les données du médicament côté client
+   * @param {object} medicamentData - Les données du médicament
+   * @param {boolean} isUpdate - Si c'est une mise à jour
+   * @returns {object} - { isValid: boolean, errors: object, cleanData: object }
+   */
+  static validateMedicamentData(medicamentData, isUpdate = false) {
+    const errors = {};
+    const cleanData = { ...medicamentData };
+
+    // Validation du nom
+    if (!medicamentData.nom?.trim()) {
+      errors.nom = 'Le nom du médicament est obligatoire';
+    } else if (medicamentData.nom.length > 255) {
+      errors.nom = 'Le nom ne doit pas dépasser 255 caractères';
+    } else {
+      cleanData.nom = medicamentData.nom.trim();
+    }
+
+    // Validation du prix
+    const prix = parseFloat(medicamentData.prix);
+    if (isNaN(prix) || prix < 0) {
+      errors.prix = 'Le prix doit être un nombre positif';
+    } else {
+      cleanData.prix = prix;
+    }
+
+    // Validation du stock
+    const stock = parseInt(medicamentData.stock);
+    if (isNaN(stock) || stock < 0) {
+      errors.stock = 'Le stock doit être un nombre entier positif';
+    } else {
+      cleanData.stock = stock;
+    }
+
+    // Validation de la famille (optionnelle)
+    if (medicamentData.famille && medicamentData.famille.length > 100) {
+      errors.famille = 'La famille ne doit pas dépasser 100 caractères';
+    } else if (medicamentData.famille) {
+      cleanData.famille = medicamentData.famille.trim();
     }
 
     return {
@@ -274,7 +324,7 @@ class ApiService {
     return userInfo ? JSON.parse(userInfo) : null;
   }
 
-  // MÉDICAMENTS
+  // MÉDICAMENTS - MÉTHODES MISES À JOUR POUR LES FAMILLES
   static async getMedicaments(useCache = true) {
     return this.makeRequest(
       `${API_BASE_URL}/medicaments`,
@@ -284,26 +334,88 @@ class ApiService {
     );
   }
 
-  static async createMedicament(medicamentData) {
-    const result = await this.makeRequest(`${API_BASE_URL}/medicaments`, {
-      method: 'POST',
-      body: JSON.stringify(medicamentData)
-    });
-    
-    // Vider le cache des médicaments après création
-    this.clearCache('medicaments');
-    return result;
+  /**
+   * Crée un nouveau médicament avec validation côté client
+   * @param {object} medicamentData - Les données du médicament
+   * @param {boolean} skipClientValidation - Ignorer la validation côté client
+   * @returns {Promise} - Résultat de la création
+   */
+  static async createMedicament(medicamentData, skipClientValidation = false) {
+    try {
+      // Validation côté client
+      if (!skipClientValidation) {
+        const validation = this.validateMedicamentData(medicamentData, false);
+        if (!validation.isValid) {
+          throw new ValidationError('Erreurs de validation côté client', validation.errors);
+        }
+        medicamentData = validation.cleanData;
+      }
+
+      console.log('🔄 Création du médicament...', { 
+        nom: medicamentData.nom,
+        famille: medicamentData.famille 
+      });
+
+      const result = await this.makeRequest(`${API_BASE_URL}/medicaments`, {
+        method: 'POST',
+        body: JSON.stringify(medicamentData)
+      });
+      
+      // Vider le cache des médicaments et familles après création
+      this.clearCache('medicaments');
+      this.clearCache('familles_suggestions');
+      console.log('✅ Médicament créé avec succès');
+      return result;
+
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        console.error('❌ Erreur de validation lors de la création:', error.errors);
+      }
+      throw error;
+    }
   }
 
-  static async updateMedicament(id, medicamentData) {
-    const result = await this.makeRequest(`${API_BASE_URL}/medicaments/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(medicamentData)
-    });
-    
-    // Vider le cache des médicaments après modification
-    this.clearCache('medicaments');
-    return result;
+  /**
+   * Met à jour un médicament avec validation côté client
+   * @param {number} id - L'ID du médicament
+   * @param {object} medicamentData - Les données du médicament
+   * @param {boolean} skipClientValidation - Ignorer la validation côté client
+   * @returns {Promise} - Résultat de la mise à jour
+   */
+  static async updateMedicament(id, medicamentData, skipClientValidation = false) {
+    try {
+      // Validation côté client
+      if (!skipClientValidation) {
+        const validation = this.validateMedicamentData(medicamentData, true);
+        if (!validation.isValid) {
+          throw new ValidationError('Erreurs de validation côté client', validation.errors);
+        }
+        medicamentData = validation.cleanData;
+      }
+
+      console.log('🔄 Mise à jour du médicament...', { 
+        id: id,
+        nom: medicamentData.nom,
+        famille: medicamentData.famille
+      });
+
+      const result = await this.makeRequest(`${API_BASE_URL}/medicaments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(medicamentData)
+      });
+      
+      // Vider le cache des médicaments et familles après modification
+      this.clearCache('medicaments');
+      this.clearCache('familles_suggestions');
+      console.log('✅ Médicament mis à jour avec succès');
+      return result;
+
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        console.error('❌ Erreur de validation lors de la mise à jour:', error.errors);
+      }
+      throw error;
+    }
   }
 
   static async deleteMedicament(id) {
@@ -314,6 +426,20 @@ class ApiService {
     // Vider le cache des médicaments après suppression
     this.clearCache('medicaments');
     return result;
+  }
+
+  /**
+   * Obtenir les suggestions de familles de médicaments
+   * @param {boolean} useCache - Utiliser le cache
+   * @returns {Promise} - Liste des familles
+   */
+  static async getFamillesSuggestions(useCache = true) {
+    return this.makeRequest(
+      `${API_BASE_URL}/medicaments/familles-suggestions`,
+      { method: 'GET' },
+      useCache,
+      'familles_suggestions'
+    );
   }
 
   // MÉDECINS - MÉTHODES MISES À JOUR POUR LA NOUVELLE STRUCTURE
@@ -582,7 +708,8 @@ class ApiService {
         await Promise.all([
           this.getSpecialites(),
           this.getMedicaments(),
-          this.getMedecins()
+          this.getMedecins(),
+          this.getFamillesSuggestions() // Précharger aussi les familles
         ]);
         console.log('✅ Préchargement terminé');
       } catch (error) {

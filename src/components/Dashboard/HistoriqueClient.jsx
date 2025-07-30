@@ -11,7 +11,7 @@ const HistoriqueClient = ({ ordonnances }) => {
 
   return (
     <div className="space-y-6 w-full h-full">
-      <h2 className="text-2xl font-bold text-gray-800">Historique des Ordonnances par Client</h2>
+      <h2 className="text-2xl font-bold text-gray-800">Consultation des Ordonnances par Client</h2>
       
       <div className="bg-white p-4 rounded-lg shadow-lg">
         <div className="relative">

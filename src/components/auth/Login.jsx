@@ -1,4 +1,3 @@
-// login.jsx - Version agrandie avec espacement amélioré
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Lock, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +23,6 @@ const Login = ({ isOpen, onClose, onLoginSuccess }) => {
   };
 
   const handleSubmit = async () => {
-    // Validation des champs
     if (!formData.username.trim() || !formData.password.trim()) {
       setError('Veuillez remplir tous les champs');
       return;
@@ -105,10 +103,10 @@ const Login = ({ isOpen, onClose, onLoginSuccess }) => {
     <>
       {/* Overlay de flou pour l'arrière-plan */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-all duration-500 ease-in-out" />
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm z-40 transition-all duration-500 ease-in-out" />
       )}
       
-      {/* Login Dropdown - Version agrandie avec espacement */}
+      {/* Login Dropdown */}
       <div 
         className={`fixed top-20 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md shadow-2xl border border-gray-200 rounded-2xl z-50 transition-all duration-500 ease-in-out ${
           isOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
@@ -126,7 +124,7 @@ const Login = ({ isOpen, onClose, onLoginSuccess }) => {
               </div>
               <div className="ml-3">
                 <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Espace Pharmacien
+                  Espace pour les pharmaciens
                 </h2>
                 <p className="text-sm text-gray-500">Connexion sécurisée</p>
               </div>

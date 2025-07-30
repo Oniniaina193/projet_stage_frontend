@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Plus, Edit2, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Plus, Edit2, Trash2, CheckCircle, ChevronDown } from 'lucide-react';
 import ApiService from '../../Services/ApiService';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -11,16 +11,50 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
     nom: '',
     prix: '',
     stock: '',
-    status: 'sans'
+    famille: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // États pour l'autocomplétion des familles
+  const [famillesSuggestions, setFamillesSuggestions] = useState([]);
+  const [showFamilleSuggestions, setShowFamilleSuggestions] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+
+  // Charger les suggestions de familles au montage du composant
+  useEffect(() => {
+    loadFamillesSuggestions();
+  }, []);
+
+  // Filtrer les suggestions en fonction de la saisie
+  useEffect(() => {
+    if (medicamentForm.famille) {
+      const filtered = famillesSuggestions.filter(famille =>
+        famille.toLowerCase().includes(medicamentForm.famille.toLowerCase())
+      );
+      setFilteredSuggestions(filtered);
+    } else {
+      setFilteredSuggestions(famillesSuggestions);
+    }
+  }, [medicamentForm.famille, famillesSuggestions]);
+
+  const loadFamillesSuggestions = async () => {
+    try {
+      const response = await ApiService.getFamillesSuggestions();
+      if (response && response.data) {
+        setFamillesSuggestions(response.data);
+      }
+    } catch (error) {
+      console.warn('Erreur lors du chargement des suggestions de familles:', error);
+    }
+  };
 
   // Fonction pour réinitialiser le formulaire
   const resetForm = useCallback(() => {
-    setMedicamentForm({ nom: '', prix: '', stock: '', status: 'sans' });
+    setMedicamentForm({ nom: '', prix: '', stock: '', famille: '' });
     setEditingMedicament(null);
     setShowMedicamentForm(false);
+    setShowFamilleSuggestions(false);
     setError('');
     setSuccess('');
   }, []);
@@ -33,8 +67,7 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
     }
   }, []);
 
-  const handleMedicamentSubmit = useCallback(async (e) => {
-    e.preventDefault();
+  const handleMedicamentSubmit = useCallback(async () => {
     setError('');
     setSuccess('');
 
@@ -44,7 +77,7 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
         nom: medicamentForm.nom.trim(),
         prix: parseFloat(medicamentForm.prix),
         stock: parseInt(medicamentForm.stock),
-        status: medicamentForm.status
+        famille: medicamentForm.famille.trim() || null
       };
 
       // Validation côté client
@@ -68,6 +101,7 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
           await ApiService.updateMedicament(editingMedicament.id_medicament, medicamentData);
           showMessage('Médicament modifié avec succès!');
           resetForm();
+          loadFamillesSuggestions(); // Recharger les suggestions
           
         } catch (apiError) {
           setMedicaments(prevMedicaments => 
@@ -77,12 +111,10 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
                 : med
             )
           );
-          // Rethrow pour être capturé par le catch principal
           throw apiError;
         }
         
       } else {
-        
         const tempId = `temp_${Date.now()}`;
         const newMedicament = { 
           ...medicamentData, 
@@ -109,13 +141,13 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
           
           showMessage('Médicament ajouté avec succès!');
           resetForm();
+          loadFamillesSuggestions(); // Recharger les suggestions
           
         } catch (apiError) {
           // En cas d'erreur, supprimer le médicament temporaire
           setMedicaments(prevMedicaments => 
             prevMedicaments.filter(med => med.id_medicament !== tempId)
           );
-          // Rethrow pour être capturé par le catch principal
           throw apiError;
         }
       }
@@ -137,7 +169,7 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
       nom: medicament.nom || '',
       prix: medicament.prix?.toString() || '',
       stock: medicament.stock?.toString() || '',
-      status: medicament.status || 'sans'
+      famille: medicament.famille || ''
     });
     setEditingMedicament(medicament);
     setShowMedicamentForm(true);
@@ -155,21 +187,17 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
       return;
     }
 
-    // Sauvegarder l'état actuel pour rollback
     const medicamentToDelete = medicaments.find(med => med.id_medicament === id);
     
     try {
-      // Supprimer immédiatement de l'UI
       setMedicaments(prevMedicaments => 
         prevMedicaments.filter(med => med.id_medicament !== id)
       );
       
       await ApiService.deleteMedicament(id);
-      
       toast.success('Médicament supprimé avec succès');
       
     } catch (error) {
-      // En cas d'erreur, restaurer le médicament
       if (medicamentToDelete) {
         setMedicaments(prevMedicaments => [...prevMedicaments, medicamentToDelete]);
       }
@@ -185,15 +213,38 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
 
   const handleFormChange = useCallback((field, value) => {
     setMedicamentForm(prev => ({ ...prev, [field]: value }));
+    
+    // Gérer l'affichage des suggestions pour le champ famille
+    if (field === 'famille') {
+      setShowFamilleSuggestions(value.length > 0);
+    }
   }, []);
 
+  const selectFamille = useCallback((famille) => {
+    setMedicamentForm(prev => ({ ...prev, famille }));
+    setShowFamilleSuggestions(false);
+  }, []);
+
+  // Obtenir les familles uniques pour les statistiques
+  const famillesStats = useMemo(() => {
+    const famillesCount = {};
+    safeMedicaments.forEach(med => {
+      if (med.famille) {
+        famillesCount[med.famille] = (famillesCount[med.famille] || 0) + 1;
+      } else {
+        famillesCount['Non définie'] = (famillesCount['Non définie'] || 0) + 1;
+      }
+    });
+    return famillesCount;
+  }, [safeMedicaments]);
+
   return (
-    <div className="space-y-6 w-full h-full">
+    <div className="space-y-2 w-full h-full">
       <ToastContainer position="top-right" />
       
       {/* En-tête */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Gestion des Médicaments</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Gestion des Médicaments avec ordonnances</h2>
         <button
           onClick={() => setShowMedicamentForm(true)}
           disabled={loading}
@@ -203,14 +254,30 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
           Ajouter Médicament
         </button>
       </div>
-
+      
+      {/* Aperçu des familles */}
+      {Object.keys(famillesStats).length > 0 && (
+        <div >
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(famillesStats).map(([famille, count]) => (
+              <span
+                key={famille}
+                className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
+              >
+                {famille}: {count}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      <br />
       {/* Formulaire d'ajout/modification */}
       {showMedicamentForm && (
         <div className="bg-white p-6 rounded-lg shadow-lg border">
           <h3 className="text-lg font-semibold mb-4">
             {editingMedicament ? 'Modifier Médicament' : 'Ajouter Médicament'}
           </h3>
-          <form onSubmit={handleMedicamentSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Nom du Médicament *
@@ -256,23 +323,43 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
                 placeholder="Quantité en stock"
               />
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status *
+                Famille
               </label>
-              <select
-                value={medicamentForm.status}
-                onChange={(e) => handleFormChange('status', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
-              >
-                <option value="sans">Sans Ordonnance</option>
-                <option value="avec">Avec Ordonnance</option>
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={medicamentForm.famille}
+                  onChange={(e) => handleFormChange('famille', e.target.value)}
+                  onFocus={() => setShowFamilleSuggestions(filteredSuggestions.length > 0)}
+                  onBlur={() => setTimeout(() => setShowFamilleSuggestions(false), 200)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                  placeholder="Ex: Comprimés, Piqûre, Sirop..."
+                />
+                <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                
+                {/* Liste des suggestions */}
+                {showFamilleSuggestions && filteredSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                    {filteredSuggestions.map((famille, index) => (
+                      <div
+                        key={index}
+                        className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        onClick={() => selectFamille(famille)}
+                      >
+                        {famille}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="md:col-span-2 flex gap-2">
               <button
-                type="submit"
+                type="button"
+                onClick={handleMedicamentSubmit}
                 disabled={loading}
                 className="bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
               >
@@ -288,7 +375,7 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
                 Annuler
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
 
@@ -315,7 +402,7 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
                   Stock
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  Famille
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -325,7 +412,7 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
             <tbody className="bg-white divide-y divide-gray-200">
               {safeMedicaments.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-6 text-center text-gray-500">
                     {loading ? 'Chargement...' : 'Aucun médicament trouvé'}
                   </td>
                 </tr>
@@ -335,28 +422,28 @@ const MedicamentManagement = ({ medicaments, setMedicaments, onDataChange, loadi
                     key={medicament.id_medicament} 
                     className={`hover:bg-gray-50 ${medicament.isTemp ? 'opacity-70' : ''}`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                       {medicament.nom}
                       {medicament.isTemp && <span className="text-xs text-gray-500 ml-2">(en cours...)</span>}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                       {medicament.prix} Ar
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                       <span className={`${medicament.stock <= 5 ? 'text-red-600 font-semibold' : ''}`}>
                         {medicament.stock}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        medicament.status === 'sans' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-purple-100 text-purple-800'
-                      }`}>
-                        {medicament.status === 'sans' ? 'Sans Ordonnance' : 'Avec Ordonnance'}
-                      </span>
+                    <td className="px-6 py-2 whitespace-nowrap">
+                      {medicament.famille ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                          {medicament.famille}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">Non définie</span>
+                      )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => editMedicament(medicament)}
                         disabled={loading || medicament.isTemp}

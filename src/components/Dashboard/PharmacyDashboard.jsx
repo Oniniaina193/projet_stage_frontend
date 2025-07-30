@@ -430,11 +430,6 @@ const PharmacyDashboard = () => {
               >
                 <Pill className="h-5 w-5 mr-3" />
                 <span>Gestion des Médicaments</span>
-                {medicaments && medicaments.length > 0 && (
-                  <span className="ml-auto bg-blue-500 text-white text-xs rounded-full px-2 py-1">
-                    {medicaments.length}
-                  </span>
-                )}
               </button>
               <br />
               <button
@@ -447,11 +442,6 @@ const PharmacyDashboard = () => {
               >
                 <UserCircle className="h-5 w-5 mr-3" />
                 <span>Gestion des Médecins</span>
-                {medecins && medecins.length > 0 && (
-                  <span className="ml-auto bg-blue-500 text-white text-xs rounded-full px-2 py-1">
-                    {medecins.length}
-                  </span>
-                )}
               </button>
               <br />
               <button
@@ -464,11 +454,6 @@ const PharmacyDashboard = () => {
               >
                 <FileText className="h-5 w-5 mr-3" />
                 <span>Gestion des Ordonnances</span>
-                {ordonnances && ordonnances.length > 0 && (
-                  <span className="ml-auto bg-blue-500 text-white text-xs rounded-full px-2 py-1">
-                    {ordonnances.length}
-                  </span>
-                )}
               </button>
               <br />
               <button
@@ -480,7 +465,7 @@ const PharmacyDashboard = () => {
                 }`}
               >
                 <Clock className="h-5 w-5 mr-3" />
-                <span>Historique par Client</span>
+                <span>Consultations</span>
               </button>
             </div>
           </nav>

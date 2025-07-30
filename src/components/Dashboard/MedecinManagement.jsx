@@ -277,7 +277,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
   }, []);
 
   return (
-    <div className="space-y-6 w-full h-full">
+    <div className="space-y-1 w-full h-full">
       <ToastContainer position="top-right" />
       
       {/* En-tête */}
@@ -312,7 +312,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
-                placeholder="Dr. Nom Prénom"
+                placeholder="Nom et Prénom"
               />
             </div>
 
@@ -373,7 +373,6 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
               <textarea
                 value={medecinForm.adresse}
                 onChange={(e) => handleFormChange('adresse', e.target.value)}
-                rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
@@ -406,7 +405,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
       )}
 
       {/* Barre de recherche */}
-      <div className="bg-white p-4 rounded-lg shadow-lg">
+      <div>
         <div className="relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <input
@@ -418,7 +417,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
           />
         </div>
       </div>
-
+      <br />
       {/* Tableau des médecins */}
       <div className="bg-white rounded-lg shadow-lg overflow-hidden w-full">
         <div className="overflow-x-auto w-full">
@@ -452,7 +451,7 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredMedecins.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-6 text-center text-gray-500">
                     {loading ? 'Chargement...' : 
                      searchTerm ? `Aucun médecin trouvé pour "${searchTerm}"` : 
                      'Aucun médecin enregistré'}
@@ -464,22 +463,22 @@ const MedecinManagement = ({ medecins, setMedecins, onDataChange, loading, setLo
                     key={medecin.id} 
                     className={`hover:bg-gray-50 ${medecin.isTemp ? 'opacity-70' : ''}`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                       Dr {medecin.nom_complet}
                       {medecin.isTemp && <span className="text-xs text-gray-500 ml-2">(en cours...)</span>}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                       {medecin.numero_ordre}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                       {medecin.telephone}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-2 text-sm text-gray-500">
                       <div className="max-w-xs truncate" title={medecin.adresse}>
                         {medecin.adresse}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => editMedecin(medecin)}
                         disabled={loading || medecin.isTemp}
