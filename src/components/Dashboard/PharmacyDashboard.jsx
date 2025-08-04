@@ -10,10 +10,7 @@ import OrdonnanceManagement from './OrdonnanceManagement';
 import HistoriqueClient from './HistoriqueClient';
 
 const PharmacyDashboard = () => {
-
-  const navigate = useNavigate();
-  
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState('statistiques'); // Changé de 'accueil' à 'statistiques'
   const [medicaments, setMedicaments] = useState([]);
   const [ordonnances, setOrdonnances] = useState([]);
   const [medecins, setMedecins] = useState([]);
@@ -21,9 +18,13 @@ const PharmacyDashboard = () => {
   const [error, setError] = useState('');
   const [lastUpdate, setLastUpdate] = useState(null);
 
+  // États pour la gestion des médecins 
   const [showMedecinForm, setShowMedecinForm] = useState(false);
   const [editingMedecin, setEditingMedecin] = useState(null);
+  
+  const navigate = useNavigate();
 
+  // Fonction pour charger les médicaments
   const loadMedicaments = useCallback(async () => {
     try {
         console.log('🔄 Chargement des médicaments...');
@@ -47,7 +48,7 @@ const PharmacyDashboard = () => {
             console.log('✅ Tableau direct extrait');
         } else {
             console.log('❌ Format de réponse non reconnu:', response);
-            medicaments = []; // Assurer que c'est un tableau vide
+            medicaments = []; 
         }
         
         console.log('✅ Médicaments extraits:', medicaments);
@@ -101,49 +102,49 @@ const PharmacyDashboard = () => {
 
   // Fonction pour charger les médecins
   const loadMedecins = useCallback(async () => {
-  try {
-    console.log('🔄 Chargement des médecins...');
-    
-    if (typeof ApiService.getMedecins === 'function') {
-      const response = await ApiService.getMedecins();
-      console.log('📦 Réponse API médecins:', response);
+    try {
+      console.log('🔄 Chargement des médecins...');
       
-      let medecinsData = [];
-      
-      // Gestion de la structure paginée Laravel
-      if (response && response.success && response.data && response.data.data) {
-        // Format paginé: response.data.data contient le tableau
-        medecinsData = Array.isArray(response.data.data) ? response.data.data : [];
-        console.log('✅ Données paginées extraites:', medecinsData);
-      } else if (Array.isArray(response)) {
-        medecinsData = response;
-      } else if (response && response.data && Array.isArray(response.data)) {
-        medecinsData = response.data;
-      } else if (response && response.medecins && Array.isArray(response.medecins)) {
-        medecinsData = response.medecins;
-      } else if (response && response.success && response.data) {
-        medecinsData = Array.isArray(response.data) ? response.data : [];
+      if (typeof ApiService.getMedecins === 'function') {
+        const response = await ApiService.getMedecins();
+        console.log('📦 Réponse API médecins:', response);
+        
+        let medecinsData = [];
+        
+        // Gestion de la structure paginée Laravel
+        if (response && response.success && response.data && response.data.data) {
+          // Format paginé: response.data.data contient le tableau
+          medecinsData = Array.isArray(response.data.data) ? response.data.data : [];
+          console.log('✅ Données paginées extraites:', medecinsData);
+        } else if (Array.isArray(response)) {
+          medecinsData = response;
+        } else if (response && response.data && Array.isArray(response.data)) {
+          medecinsData = response.data;
+        } else if (response && response.medecins && Array.isArray(response.medecins)) {
+          medecinsData = response.medecins;
+        } else if (response && response.success && response.data) {
+          medecinsData = Array.isArray(response.data) ? response.data : [];
+        } else {
+          console.log('❌ Format de réponse non reconnu:', response);
+          medecinsData = [];
+        }
+        
+        console.log('✅ Médecins extraits:', medecinsData);
+        console.log('📊 Nombre de médecins:', medecinsData.length);
+        
+        setMedecins(medecinsData);
+        return medecinsData;
       } else {
-        console.log('❌ Format de réponse non reconnu:', response);
-        medecinsData = [];
+        console.log('⚠️ Méthode getMedecins non disponible');
+        setMedecins([]);
+        return [];
       }
-      
-      console.log('✅ Médecins extraits:', medecinsData);
-      console.log('📊 Nombre de médecins:', medecinsData.length);
-      
-      setMedecins(medecinsData);
-      return medecinsData;
-    } else {
-      console.log('⚠️ Méthode getMedecins non disponible');
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des médecins:', error);
       setMedecins([]);
       return [];
     }
-  } catch (error) {
-    console.error('❌ Erreur lors du chargement des médecins:', error);
-    setMedecins([]);
-    return [];
-  }
-}, []);
+  }, []);
 
   // Fonction pour charger toutes les données
   const loadAllData = useCallback(async () => {
@@ -176,6 +177,45 @@ const PharmacyDashboard = () => {
     }
   }, [loadMedicaments, loadOrdonnances, loadMedecins]);
 
+  const handleHomeNavigation = () => {
+    navigate('/');
+  };
+
+  // Fonction de déconnexion
+  const handleLogout = async () => {
+    if (window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+      setLoading(true); 
+      
+      try {
+        console.log('🔄 Début de la déconnexion...');
+        
+        const result = await ApiService.logout();
+        
+        console.log('✅ Déconnexion réussie:', result.message);
+        
+        // Nettoyer les données locales du dashboard
+        setMedicaments([]);
+        setOrdonnances([]);
+        setMedecins([]);
+        setError('');
+        navigate('/');
+        
+      } catch (error) {
+        console.error('❌ Erreur lors de la déconnexion:', error);
+        
+        // Même en cas d'erreur, on nettoie et redirige
+        setMedicaments([]);
+        setOrdonnances([]);
+        setMedecins([]);
+        setError('');
+        navigate('/');
+        
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const clearError = () => {
     setError('');
   };
@@ -194,7 +234,7 @@ const PharmacyDashboard = () => {
 
   // Recharger les données quand on change de vue
   useEffect(() => {
-    if (currentView !== 'dashboard') {
+    if (currentView !== 'statistiques') {
       // Recharger les données spécifiques à la vue
       switch (currentView) {
         case 'medicaments':
@@ -211,46 +251,6 @@ const PharmacyDashboard = () => {
       }
     }
   }, [currentView, loadMedicaments, loadMedecins, loadOrdonnances]);
-
-  const handleReturnHome = () => {
-      navigate('/');
-    
-  };
-
-  const handleLogout = async () => {
-  if (window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-    setLoading(true); 
-    
-    try {
-      console.log('🔄 Début de la déconnexion...');
-      
-      const result = await ApiService.logout();
-      
-      console.log('✅ Déconnexion réussie:', result.message);
-      
-      // Nettoyer les données locales du dashboard
-      setMedicaments([]);
-      setOrdonnances([]);
-      setMedecins([]);
-      setError('');
-      navigate('/');
-      
-    } catch (error) {
-      console.error('❌ Erreur lors de la déconnexion:', error);
-      
-      // Même en cas d'erreur, on nettoie et redirige
-      // car le localStorage a déjà été nettoyé par ApiService
-      setMedicaments([]);
-      setOrdonnances([]);
-      setMedecins([]);
-      setError('');
-      navigate('/');
-      
-    } finally {
-      setLoading(false);
-    }
-  }
-};
 
   // Fonction pour gérer la mise à jour des données après ajout/modification
   const handleDataUpdate = useCallback((type) => {
@@ -276,12 +276,15 @@ const PharmacyDashboard = () => {
 
   const renderCurrentView = () => {
     switch (currentView) {
-      case 'dashboard':
+      case 'statistiques':
         return (
           <DashboardStats 
             medicaments={medicaments}
             ordonnances={ordonnances}  
             medecins={medecins}
+            loading={loading}
+            onRefresh={refreshData}
+            lastUpdate={lastUpdate}
           />
         );
       case 'medicaments':
@@ -311,14 +314,14 @@ const PharmacyDashboard = () => {
       case 'ordonnances':
         return (
           <OrdonnanceManagement 
-            ordonnances={ordonnances || []} 
+            ordonnances={ordonnances || []}
             setOrdonnances={setOrdonnances}
             onDataChange={() => handleDataUpdate('ordonnances')}
             loading={loading}
             setLoading={setLoading}
           />
         );
-      case 'historique':
+      case 'consultations':
         return (
           <HistoriqueClient 
             ordonnances={ordonnances || []}
@@ -329,9 +332,9 @@ const PharmacyDashboard = () => {
       default:
         return (
           <DashboardStats 
-            medicaments={medicaments || []} 
-            ordonnances={ordonnances || []} 
-            medecins={medecins || []}
+            medicaments={medicaments} 
+            ordonnances={ordonnances} 
+            medecins={medecins}
             loading={loading}
             onRefresh={refreshData}
             lastUpdate={lastUpdate}
@@ -341,17 +344,21 @@ const PharmacyDashboard = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header avec style Huawei - DESIGN ORIGINAL CONSERVÉ */}
       <header className="bg-white shadow-sm border-b">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            {/* Logo et titre */}
             <div className="flex items-center">
               <div className="rounded-lg shadow-lg overflow-hidden bg-white p-1">
+                <div className="rounded-lg shadow-lg overflow-hidden bg-white p-1">
                 <img 
                   src="/images/logoPharmacie.png" 
                   alt="Logo PharmaGestion" 
                   className="h-10 w-10 object-contain"
                 />
+              </div>
               </div>
               <div className="ml-3">
                 <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -361,20 +368,138 @@ const PharmacyDashboard = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            {/* Navigation horizontale style Huawei AVEC ICÔNES */}
+            <nav className="hidden md:flex items-center space-x-8">
+              {/* Bouton Accueil - redirige vers la page d'accueil */}
               <button
-                onClick={handleReturnHome}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                onClick={handleHomeNavigation}
+                className="px-3 py-2 text-sm font-medium transition-colors text-gray-700 hover:text-red-600 flex items-center gap-2"
+                title="Retour à l'accueil du site"
               >
                 <Home className="h-4 w-4" />
-                Retour à l'accueil
+                Accueil
+              </button>
+              
+              <button
+                onClick={() => setCurrentView('statistiques')}
+                className={`px-3 py-2 text-sm font-medium transition-colors relative flex items-center gap-2 ${
+                  currentView === 'statistiques' 
+                    ? 'text-red-600' 
+                    : 'text-gray-700 hover:text-red-600'
+                }`}
+              >
+                <Activity className="h-4 w-4" />
+                Statistiques
+                {currentView === 'statistiques' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"></div>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setCurrentView('medicaments')}
+                className={`px-3 py-2 text-sm font-medium transition-colors relative flex items-center gap-2 ${
+                  currentView === 'medicaments' 
+                    ? 'text-red-600' 
+                    : 'text-gray-700 hover:text-red-600'
+                }`}
+              >
+                <Pill className="h-4 w-4" />
+                Médicaments
+                {currentView === 'medicaments' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"></div>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setCurrentView('medecins')}
+                className={`px-3 py-2 text-sm font-medium transition-colors relative flex items-center gap-2 ${
+                  currentView === 'medecins' 
+                    ? 'text-red-600' 
+                    : 'text-gray-700 hover:text-red-600'
+                }`}
+              >
+                <UserCircle className="h-4 w-4" />
+                Médecins
+                {currentView === 'medecins' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"></div>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setCurrentView('ordonnances')}
+                className={`px-3 py-2 text-sm font-medium transition-colors relative flex items-center gap-2 ${
+                  currentView === 'ordonnances' 
+                    ? 'text-red-600' 
+                    : 'text-gray-700 hover:text-red-600'
+                }`}
+              >
+                <FileText className="h-4 w-4" />
+                Ordonnances
+                {currentView === 'ordonnances' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"></div>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setCurrentView('consultations')}
+                className={`px-3 py-2 text-sm font-medium transition-colors relative flex items-center gap-2 ${
+                  currentView === 'consultations' 
+                    ? 'text-red-600' 
+                    : 'text-gray-700 hover:text-red-600'
+                }`}
+              >
+                <Clock className="h-4 w-4" />
+                Consultations
+                {currentView === 'consultations' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"></div>
+                )}
+              </button>
+            </nav>
+            
+            {/* Bouton Logout à droite */}
+            <div className="flex items-center">
+              <button
+                onClick={handleLogout}
+                disabled={loading}
+                className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
               </button>
             </div>
           </div>
         </div>
-        
       </header>
 
+      {/* Navigation mobile (dropdown) */}
+      <div className="md:hidden bg-white border-b">
+        <div className="px-4 py-2 flex gap-2">
+          {/* Bouton Accueil mobile */}
+          <button
+            onClick={handleHomeNavigation}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+            title="Retour à l'accueil du site"
+          >
+            <Home className="h-4 w-4" />
+            Accueil
+          </button>
+          
+          {/* Select pour navigation mobile */}
+          <select 
+            value={currentView} 
+            onChange={(e) => setCurrentView(e.target.value)}
+            className="flex-1 p-2 border rounded-lg"
+          >
+            <option value="statistiques">📊 Statistiques</option>
+            <option value="medicaments">💊 Médicaments</option>
+            <option value="medecins">👨‍⚕️ Médecins</option>
+            <option value="ordonnances">📋 Ordonnances</option>
+            <option value="consultations">🕒 Consultations</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Messages d'erreur */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-4 mt-4 rounded relative">
           <div className="flex justify-between items-start">
@@ -404,94 +529,17 @@ const PharmacyDashboard = () => {
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 bg-white shadow-sm h-full overflow-y-auto flex flex-col">
-          <nav className="mt-8 flex-1">
-            <div className="px-4 space-y-2">
-              <button
-                onClick={() => setCurrentView('dashboard')}
-                className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
-                  currentView === 'dashboard' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Activity className="h-5 w-5 mr-3" />
-                <span>Tableau de Bord</span>
-              </button>
-              <br />
-              <button
-                onClick={() => setCurrentView('medicaments')}
-                className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
-                  currentView === 'medicaments' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Pill className="h-5 w-5 mr-3" />
-                <span>Gestion des Médicaments</span>
-              </button>
-              <br />
-              <button
-                onClick={() => setCurrentView('medecins')}
-                className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
-                  currentView === 'medecins' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <UserCircle className="h-5 w-5 mr-3" />
-                <span>Gestion des Médecins</span>
-              </button>
-              <br />
-              <button
-                onClick={() => setCurrentView('ordonnances')}
-                className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
-                  currentView === 'ordonnances' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <FileText className="h-5 w-5 mr-3" />
-                <span>Gestion des Ordonnances</span>
-              </button>
-              <br />
-              <button
-                onClick={() => setCurrentView('historique')}
-                className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
-                  currentView === 'historique' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Clock className="h-5 w-5 mr-3" />
-                <span>Consultations</span>
-              </button>
-            </div>
-          </nav>
-          
-          <div className="px-4 pb-4 border-t border-gray-200 pt-4">
-            <button
-              onClick={handleLogout}
-              className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              Déconnexion
-            </button>
+      {/* Contenu principal */}
+      <main className="flex-1 overflow-y-auto bg-gray-50">
+        {loading && (
+          <div className="flex flex-col justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
+            <p className="text-gray-600">Chargement des données...</p>
           </div>
-        </aside>
-
-        <main className="flex-1 min-w-0 overflow-y-auto p-6 w-full h-full">
-          {loading && (
-            <div className="flex flex-col justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-              <p className="text-gray-600">Chargement des données...</p>
-            </div>
-          )}
-          
-          {!loading && renderCurrentView()}
-        </main>
-      </div>
+        )}
+        
+        {!loading && renderCurrentView()}
+      </main>
     </div>
   );
 };

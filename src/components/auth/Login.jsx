@@ -63,7 +63,6 @@ const Login = ({ isOpen, onClose, onLoginSuccess }) => {
           onLoginSuccess(data.data.user);
         }
         
-        // Fermer le dropdown et rediriger
         onClose();
         navigate('/dashboard');
         

@@ -1,8 +1,8 @@
-import React from 'react';
-import { Pill, Users, FileText, Clock, UserCheck, AlertTriangle, TrendingUp, Package } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Pill, LogOut, User, FileText, Users, Clock, UserCircle, Package, Activity, Home, BarChart3 } from 'lucide-react';
 
+// Composant DashboardStats intégré
 const DashboardStats = ({ medicaments = [], ordonnances = [], medecins = [] }) => {
-  
   // Calcul des statistiques par famille
   const famillesStats = medicaments.reduce((acc, med) => {
     const famille = med.famille || 'Non définie';
@@ -22,16 +22,13 @@ const DashboardStats = ({ medicaments = [], ordonnances = [], medecins = [] }) =
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Tableau de Bord - Statistiques</h2>
-        <div className="text-sm text-gray-500">
-          Dernière mise à jour:  {new Date().toLocaleString()}
-        </div>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-center items-center">
+        <h2 className="text-2xl font-bold text-gray-800 text-center">Tableau de Bord - Statistiques</h2>
       </div>
 
-      {/* Statistiques principales - 5 cartes sur une ligne */}
-      <div className="grid grid-cols-5 gap-4">
+      {/* Statistiques principale*/}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -58,7 +55,7 @@ const DashboardStats = ({ medicaments = [], ordonnances = [], medecins = [] }) =
               <p className="text-purple-100 text-sm">Total Médecins</p>
               <p className="text-2xl font-bold">{stats.total_medecins}</p>
             </div>
-            <UserCheck className="h-8 w-8 text-purple-200" />
+            <UserCircle className="h-8 w-8 text-purple-200" />
           </div>
         </div>
 
@@ -68,7 +65,7 @@ const DashboardStats = ({ medicaments = [], ordonnances = [], medecins = [] }) =
               <p className="text-orange-100 text-sm">Total Ordonnances</p>
               <p className="text-2xl font-bold">{stats.total_ordonnances}</p>
             </div>
-            <TrendingUp className="h-8 w-8 text-orange-200" />
+            <FileText className="h-8 w-8 text-orange-200" />
           </div>
         </div>
 
@@ -78,7 +75,7 @@ const DashboardStats = ({ medicaments = [], ordonnances = [], medecins = [] }) =
               <p className="text-red-100 text-sm">Stock Faible</p>
               <p className="text-2xl font-bold">{stats.stock_faible}</p>
             </div>
-            <AlertTriangle className="h-8 w-8 text-red-200" />
+            <User className="h-8 w-8 text-red-200" />
           </div>
         </div>
       </div>
@@ -87,7 +84,7 @@ const DashboardStats = ({ medicaments = [], ordonnances = [], medecins = [] }) =
       {Object.keys(famillesStats).length > 0 && (
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4">Répartition par famille de médicaments</h3>
-          <div className="grid grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             {Object.entries(famillesStats)
               .sort(([,a], [,b]) => b - a)
               .map(([famille, count]) => (
@@ -105,7 +102,7 @@ const DashboardStats = ({ medicaments = [], ordonnances = [], medecins = [] }) =
       <br />
       <div className="bg-white p-6 rounded-lg shadow">
         <h3 className="text-lg font-semibold mb-4">Résumé</h3>
-        <div className="grid grid-cols-5 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
           <div>
             <span className="text-gray-600">Médicaments actifs:</span>
             <span className="font-semibold ml-2">{stats.total_medicaments}</span>
